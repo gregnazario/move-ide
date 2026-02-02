@@ -90,8 +90,8 @@ version = "0.0.1"
 playground = "_"
 
 [dependencies.AptosFramework]
-git = "https://github.com/aptos-labs/aptos-core.git"
-subdir = "aptos-move/framework/aptos-framework"
+git = "https://github.com/aptos-labs/aptos-framework.git"
+subdir = "aptos-framework"
 rev = "mainnet"
 `;
 

@@ -1,5 +1,5 @@
 use std::net::SocketAddr;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use axum::{
     extract::{
@@ -146,13 +146,10 @@ async fn handle_execute(
 
     // Execute with timeout
     let executor = Executor::new(&state.config);
-    let timeout = Duration::from_secs(state.config.timeout_secs);
-
-    let result =
-        tokio::time::timeout(timeout, executor.execute(&workspace, &payload, tx.clone())).await;
+    let result = executor.execute(&workspace, &payload, tx.clone()).await;
 
     match result {
-        Ok(Ok((exit_code, output))) => {
+        Ok((exit_code, output)) => {
             // Parse errors from output
             let errors = Parser::parse_errors(&output);
             if !errors.is_empty() {
@@ -174,17 +171,7 @@ async fn handle_execute(
                 })
                 .await;
         }
-        Ok(Err(e)) => {
-            let _ = tx
-                .send(ServerMessage::Failed {
-                    payload: FailedPayload {
-                        reason: FailureReason::InternalError,
-                        message: e.to_string(),
-                    },
-                })
-                .await;
-        }
-        Err(_) => {
+        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
             let _ = tx
                 .send(ServerMessage::Failed {
                     payload: FailedPayload {
@@ -193,6 +180,16 @@ async fn handle_execute(
                             "Execution timed out after {} seconds",
                             state.config.timeout_secs
                         ),
+                    },
+                })
+                .await;
+        }
+        Err(e) => {
+            let _ = tx
+                .send(ServerMessage::Failed {
+                    payload: FailedPayload {
+                        reason: FailureReason::InternalError,
+                        message: e.to_string(),
                     },
                 })
                 .await;

@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### Fixed
+- Prevented `aptos move run` from passing unsupported flags and added validation for missing entry function.
+- Terminated long-running executions on timeout to avoid stray processes and workspace deletion errors.
 
 ## [0.1.0] - 2026-02-02
 ### Added
@@ -18,5 +21,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - Rust clippy warnings in backend API, error, and workspace modules.
 
-[Unreleased]: https://github.com/UNKNOWN/UNKNOWN/compare/0.1.0...HEAD
-[0.1.0]: https://github.com/UNKNOWN/UNKNOWN/releases/tag/0.1.0
+[Unreleased]: https://github.com/gregnazario/move-ide/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/gregnazario/move-ide/releases/tag/0.1.0

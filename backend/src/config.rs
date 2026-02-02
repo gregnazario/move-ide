@@ -31,7 +31,7 @@ impl Config {
                 .parse()?,
 
             timeout_secs: std::env::var("PLAYGROUND_TIMEOUT_SECS")
-                .unwrap_or_else(|_| "10".into())
+                .unwrap_or_else(|_| "30".into())
                 .parse()?,
             max_memory_mb: std::env::var("PLAYGROUND_MAX_MEMORY_MB")
                 .unwrap_or_else(|_| "1024".into())

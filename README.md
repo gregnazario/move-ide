@@ -90,11 +90,16 @@ npm run format
 npm run lint
 ```
 
+## Configuration
+
+- `PLAYGROUND_TIMEOUT_SECS` (default: 30) controls the max execution time for compile/run/test.
+
 ## API
 
 ### WebSocket: `/ws/execute`
 
 Execute Move code with real-time streaming output.
+Run commands require an entry function (`--function-id`) and will return a validation error if missing.
 
 ### REST Endpoints
 

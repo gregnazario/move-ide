@@ -21,6 +21,7 @@ impl<'a> Validator<'a> {
         self.validate_file_paths(&payload.files)?;
         self.validate_move_toml(&payload.files)?;
         self.validate_named_addresses(&payload.named_addresses)?;
+        self.validate_entry_function(payload)?;
         Ok(())
     }
 
@@ -193,6 +194,22 @@ impl<'a> Validator<'a> {
                     )));
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    fn validate_entry_function(&self, payload: &ExecutePayload) -> Result<(), AppError> {
+        if matches!(payload.command, crate::types::request::Command::Run)
+            && payload
+                .entry_function
+                .as_ref()
+                .map(|entry| entry.trim().is_empty())
+                .unwrap_or(true)
+        {
+            return Err(AppError::Validation(
+                "Entry function is required for run commands".into(),
+            ));
         }
 
         Ok(())

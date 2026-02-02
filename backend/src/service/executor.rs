@@ -1,5 +1,6 @@
 use std::process::Stdio;
 
+use std::io;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
@@ -37,19 +38,25 @@ impl<'a> Executor<'a> {
         match &payload.command {
             crate::types::request::Command::Compile => {
                 cmd.args(["move", "compile", "--package-dir", "."]);
+                if !payload.named_addresses.is_empty() {
+                    for (name, addr) in &payload.named_addresses {
+                        cmd.args(["--named-addresses", &format!("{}={}", name, addr)]);
+                    }
+                }
             }
             crate::types::request::Command::Run => {
                 cmd.args(["move", "run"]);
                 if let Some(ref func) = payload.entry_function {
                     cmd.args(["--function-id", func]);
                 }
-                // Add named addresses
-                for (name, addr) in &payload.named_addresses {
-                    cmd.args(["--named-addresses", &format!("{}={}", name, addr)]);
-                }
             }
             crate::types::request::Command::Test => {
                 cmd.args(["move", "test", "--package-dir", "."]);
+                if !payload.named_addresses.is_empty() {
+                    for (name, addr) in &payload.named_addresses {
+                        cmd.args(["--named-addresses", &format!("{}={}", name, addr)]);
+                    }
+                }
             }
         }
 
@@ -103,7 +110,25 @@ impl<'a> Executor<'a> {
         });
 
         // Wait for process to exit
-        let status = child.wait().await?;
+        let status = match tokio::time::timeout(
+            std::time::Duration::from_secs(self.config.timeout_secs),
+            child.wait(),
+        )
+        .await
+        {
+            Ok(Ok(status)) => status,
+            Ok(Err(e)) => return Err(e),
+            Err(_) => {
+                let _ = child.kill().await;
+                let _ = child.wait().await;
+                stdout_handle.abort();
+                stderr_handle.abort();
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "Execution timed out",
+                ));
+            }
+        };
 
         // Collect output
         let stdout_output = stdout_handle.await.unwrap_or_default();
