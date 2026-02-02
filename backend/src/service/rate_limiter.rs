@@ -13,6 +13,11 @@ pub struct RateLimitGuard<'a> {
     limiter: &'a RateLimiter,
 }
 
+#[derive(Debug)]
+pub enum RateLimitError {
+    TooManyConnections,
+}
+
 impl RateLimiter {
     pub fn new(max_per_ip: usize) -> Self {
         RateLimiter {
@@ -21,7 +26,7 @@ impl RateLimiter {
         }
     }
 
-    pub fn try_acquire(&self, ip: IpAddr) -> Result<RateLimitGuard<'_>, ()> {
+    pub fn try_acquire(&self, ip: IpAddr) -> Result<RateLimitGuard<'_>, RateLimitError> {
         let counter = self
             .active_connections
             .entry(ip)
@@ -31,7 +36,7 @@ impl RateLimiter {
 
         if current >= self.max_per_ip {
             counter.fetch_sub(1, Ordering::SeqCst);
-            return Err(());
+            return Err(RateLimitError::TooManyConnections);
         }
 
         Ok(RateLimitGuard { ip, limiter: self })
