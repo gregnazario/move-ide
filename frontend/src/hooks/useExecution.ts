@@ -41,14 +41,10 @@ export function useExecution() {
         }
 
         const timeout = setTimeout(() => {
-            if (wsStatus !== "connected") {
-                setMode("serverless");
-                if (!wsFallbackNotified.current) {
-                    wsFallbackNotified.current = true;
-                    toast.message(
-                        "WebSocket unavailable, using serverless mode",
-                    );
-                }
+            setMode("serverless");
+            if (!wsFallbackNotified.current) {
+                wsFallbackNotified.current = true;
+                toast.message("WebSocket unavailable, using serverless mode");
             }
             setWsAttempted(true);
         }, WS_FALLBACK_MS);
