@@ -119,6 +119,12 @@ UPSTASH_REDIS_REST_TOKEN=
 APTOS_CLI_PATH=aptos
 ```
 
+Generate a secret locally:
+
+```bash
+./scripts/gen-auth-secret.sh
+```
+
 ## Vercel Deployment (Serverless Mode)
 
 1. Create a Vercel project with **Root Directory** set to `frontend/`.
