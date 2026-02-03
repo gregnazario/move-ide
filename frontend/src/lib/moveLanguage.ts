@@ -159,8 +159,8 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/\bMIN_I\d+\b/, "constant"],
 
             // Address literals
-            [/@0[xX][0-9a-fA-F_]+/, "number.hex"],
-            [/@[a-zA-Z_][\w_]*/, "constant"],
+            [/\@0[xX][0-9a-fA-F_]+/, "number.hex"],
+            [/\@[a-zA-Z_][\w_]*/, "constant"],
 
             // Identifiers and keywords
             [

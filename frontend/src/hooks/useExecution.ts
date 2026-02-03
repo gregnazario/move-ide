@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
     pollExecution,
     startExecution,
@@ -19,6 +20,7 @@ const POLL_INTERVAL_MS = 1500;
 export function useExecution() {
     const [mode, setMode] = useState<"websocket" | "serverless">("websocket");
     const [wsAttempted, setWsAttempted] = useState(false);
+    const wsFallbackNotified = useRef(false);
     const pendingRef = useRef<{
         resolve: (payload: DonePayload) => void;
         reject: (error: Error) => void;
@@ -41,6 +43,12 @@ export function useExecution() {
         const timeout = setTimeout(() => {
             if (wsStatus !== "connected") {
                 setMode("serverless");
+                if (!wsFallbackNotified.current) {
+                    wsFallbackNotified.current = true;
+                    toast.message(
+                        "WebSocket unavailable, using serverless mode",
+                    );
+                }
             }
             setWsAttempted(true);
         }, WS_FALLBACK_MS);

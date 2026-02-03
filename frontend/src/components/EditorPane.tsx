@@ -64,10 +64,14 @@ export function EditorPane() {
             hasRegisteredLanguages = true;
             // Register Move language
             monaco.languages.register({ id: "move" });
-            monaco.languages.setMonarchTokensProvider(
-                "move",
-                moveLanguageConfig,
-            );
+            try {
+                monaco.languages.setMonarchTokensProvider(
+                    "move",
+                    moveLanguageConfig,
+                );
+            } catch (err) {
+                console.warn("Failed to register Move language tokens", err);
+            }
             monaco.languages.setLanguageConfiguration("move", {
                 comments: {
                     lineComment: "//",
