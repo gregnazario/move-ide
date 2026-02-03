@@ -6,6 +6,7 @@ A browser-based interactive playground for Aptos Move, inspired by the Rust Play
 
 - 🎨 **Monaco Editor** with Move syntax highlighting
 - 🚀 **Real-time execution** via WebSocket streaming
+- ☁️ **Serverless execution** with SSE/poll fallback
 - 📁 **Multi-file support** (modules, scripts, packages)
 - 🔗 **Share snippets** via GitHub Gists
 - 📦 **Export workspace** to a ZIP file
@@ -95,6 +96,44 @@ bun run lint
 ## Configuration
 
 - `PLAYGROUND_TIMEOUT_SECS` (default: 30) controls the max execution time for compile/run/test.
+- `AUTH_JWT_SECRET` is required for frontend-only access control (shared between backend + serverless).
+- `PLAYGROUND_FRONTEND_ORIGINS` (comma-separated) controls allowed frontend origins.
+
+### Env vars
+
+Backend (Axum):
+
+```
+AUTH_JWT_SECRET=change-me
+PLAYGROUND_FRONTEND_ORIGINS=http://localhost:3000
+```
+
+Frontend / Vercel Functions:
+
+```
+AUTH_JWT_SECRET=change-me
+FRONTEND_ORIGINS=http://localhost:3000
+AUTH_COOKIE_DOMAIN=.example.com
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+APTOS_CLI_PATH=aptos
+```
+
+## Vercel Deployment (Serverless Mode)
+
+1. Create a Vercel project with **Root Directory** set to `frontend/`.
+2. Add environment variables (Project → Settings → Environment Variables):
+   - `AUTH_JWT_SECRET`
+   - `FRONTEND_ORIGINS`
+   - `AUTH_COOKIE_DOMAIN` (optional, set to `.example.com` for subdomains)
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+   - `APTOS_CLI_PATH` (optional, if `aptos` is not on PATH)
+3. Ensure the Aptos CLI is available in the function runtime:
+   - Set `APTOS_CLI_PATH` if you bundle it, or install it as part of the build.
+4. Deploy. The frontend will auto-detect WebSocket availability and fall back to serverless.
+
+Note: To use WebSocket mode, the backend must be deployed separately (e.g., Fly/Render) and on the same site/subdomain so the auth cookie is sent.
 
 ## API
 
