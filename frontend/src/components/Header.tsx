@@ -36,6 +36,7 @@ export function Header() {
         connect,
         disconnect,
         signAndSubmitTransaction,
+        network,
     } = useWallet();
     const [showRunMenu, setShowRunMenu] = useState(false);
     const [showWalletMenu, setShowWalletMenu] = useState(false);
@@ -162,29 +163,63 @@ export function Header() {
         return bytes;
     };
 
-    const compileForPublish = async () => {
-        const result = await executeWithResult("compile", {
-            include_bytecode: true,
-        });
-        if (!result.compiled_package) {
-            throw new Error("No compiled package returned");
+    const hexToBytes = (data: string) => {
+        const hex = data.replace(/^0x/, "");
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < hex.length; i += 2) {
+            bytes[i / 2] = Number.parseInt(hex.slice(i, i + 2), 16);
         }
-        return result.compiled_package;
+        return bytes;
+    };
+
+    const maybeDecodeArgument = (arg: unknown) => {
+        if (typeof arg !== "string") return arg;
+        if (/^0x[0-9a-fA-F]+$/.test(arg)) {
+            return hexToBytes(arg);
+        }
+        if (/^[A-Za-z0-9+/]+={0,2}$/.test(arg) && arg.length % 4 === 0) {
+            try {
+                return base64ToBytes(arg);
+            } catch {
+                return arg;
+            }
+        }
+        return arg;
+    };
+
+    type PublishArgument =
+        | string
+        | number
+        | boolean
+        | bigint
+        | Uint8Array
+        | string[]
+        | number[]
+        | boolean[]
+        | Uint8Array[];
+
+    const buildPublishPayload = async () => {
+        const result = await executeWithResult("build_publish_payload");
+        if (!result.publish_payload) {
+            throw new Error("No publish payload returned");
+        }
+        return result.publish_payload;
     };
 
     const handlePublish = async () => {
         try {
-            const compiled = await compileForPublish();
-            const metadataBytes = base64ToBytes(compiled.metadata_bcs);
-            const moduleBytes = compiled.modules.map((moduleEntry) =>
-                base64ToBytes(moduleEntry.bytecode),
-            );
+            const publishPayload = await buildPublishPayload();
+            const normalizedArguments = publishPayload.arguments.map(
+                maybeDecodeArgument,
+            ) as PublishArgument[];
 
             if (connected) {
                 const response = await signAndSubmitTransaction({
                     data: {
-                        function: "0x1::code::publish_package_txn",
-                        functionArguments: [metadataBytes, moduleBytes],
+                        function:
+                            publishPayload.function as `${string}::${string}::${string}`,
+                        typeArguments: publishPayload.type_arguments,
+                        functionArguments: normalizedArguments,
                     },
                 });
                 toast.success(`Publish submitted: ${response.hash}`);
@@ -202,8 +237,10 @@ export function Header() {
                 await aptosDevnetClient.transaction.build.simple({
                     sender: signer.accountAddress,
                     data: {
-                        function: "0x1::code::publish_package_txn",
-                        functionArguments: [metadataBytes, moduleBytes],
+                        function:
+                            publishPayload.function as `${string}::${string}::${string}`,
+                        typeArguments: publishPayload.type_arguments,
+                        functionArguments: normalizedArguments,
                     },
                 });
             const pending = await aptosDevnetClient.signAndSubmitTransaction({
@@ -273,6 +310,9 @@ export function Header() {
         }
     };
 
+    const isWalletDevnet = network?.name === "devnet";
+    const canWalletPublish = connected && isWalletDevnet;
+    const canDevnetPublish = !connected && Boolean(devnetAccount);
     const canOnchain = connected || Boolean(devnetAccount);
     const canRunOnChain = canOnchain && Boolean(selectedFunction);
 
@@ -339,10 +379,21 @@ export function Header() {
                                     void handlePublish();
                                     setShowRunMenu(false);
                                 }}
-                                disabled={!canOnchain}
+                                disabled={
+                                    !canWalletPublish && !canDevnetPublish
+                                }
                                 className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
+                                title={
+                                    connected && !isWalletDevnet
+                                        ? "Switch wallet to devnet"
+                                        : !connected && !devnetAccount
+                                          ? "Connect a wallet or create a devnet account"
+                                          : undefined
+                                }
                             >
-                                Publish (Devnet)
+                                {connected
+                                    ? "Publish (Wallet)"
+                                    : "Publish (Devnet account)"}
                             </button>
                             <button
                                 type="button"
@@ -412,6 +463,27 @@ export function Header() {
                                 <div className="text-text-secondary uppercase tracking-wide">
                                     AIP-62 Wallets
                                 </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-text-secondary">
+                                        Target: devnet
+                                    </span>
+                                    <span
+                                        className={`text-xs ${
+                                            connected && !isWalletDevnet
+                                                ? "text-error"
+                                                : "text-text-secondary"
+                                        }`}
+                                    >
+                                        Wallet:{" "}
+                                        {network?.name ?? "disconnected"}
+                                    </span>
+                                </div>
+                                {connected && !isWalletDevnet && (
+                                    <div className="text-error">
+                                        Network mismatch. Switch wallet to
+                                        devnet to publish.
+                                    </div>
+                                )}
                                 {connected ? (
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="text-text-primary">

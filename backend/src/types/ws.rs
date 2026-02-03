@@ -55,6 +55,13 @@ pub struct ErrorsPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PublishPayload {
+    pub function: String,
+    pub type_arguments: Vec<String>,
+    pub arguments: Vec<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledModule {
     pub name: String,
     pub bytecode: String,
@@ -74,6 +81,7 @@ pub struct DonePayload {
     pub duration_ms: u64,
     pub bytecode: Option<String>,
     pub compiled_package: Option<CompiledPackage>,
+    pub publish_payload: Option<PublishPayload>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

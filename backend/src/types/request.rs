@@ -7,11 +7,12 @@ pub struct FileEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Command {
     Compile,
     Run,
     Test,
+    BuildPublishPayload,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

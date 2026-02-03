@@ -24,7 +24,8 @@ impl<'a> Executor<'a> {
         workspace: &Workspace,
         payload: &ExecutePayload,
         tx: mpsc::Sender<ServerMessage>,
-    ) -> Result<(i32, String, Option<CompiledPackage>), std::io::Error> {
+    ) -> Result<(i32, String, Option<CompiledPackage>, Option<PublishPayload>), std::io::Error>
+    {
         let mut cmd = Command::new(&self.config.aptos_cli_path);
 
         // Set working directory
@@ -53,6 +54,22 @@ impl<'a> Executor<'a> {
             }
             crate::types::request::Command::Test => {
                 cmd.args(["move", "test", "--package-dir", "."]);
+                if !payload.named_addresses.is_empty() {
+                    for (name, addr) in &payload.named_addresses {
+                        cmd.args(["--named-addresses", &format!("{}={}", name, addr)]);
+                    }
+                }
+            }
+            crate::types::request::Command::BuildPublishPayload => {
+                let output_path = workspace.path.join("publish-payload.json");
+                cmd.args([
+                    "move",
+                    "build-publish-payload",
+                    "--json-output-file",
+                    output_path.to_string_lossy().as_ref(),
+                    "--package-dir",
+                    ".",
+                ]);
                 if !payload.named_addresses.is_empty() {
                     for (name, addr) in &payload.named_addresses {
                         cmd.args(["--named-addresses", &format!("{}={}", name, addr)]);
@@ -147,7 +164,22 @@ impl<'a> Executor<'a> {
             None
         };
 
-        Ok((exit_code, combined_output, compiled_package))
+        let publish_payload = if exit_code == 0
+            && matches!(
+                payload.command,
+                crate::types::request::Command::BuildPublishPayload
+            ) {
+            read_publish_payload(&workspace.path).ok()
+        } else {
+            None
+        };
+
+        Ok((
+            exit_code,
+            combined_output,
+            compiled_package,
+            publish_payload,
+        ))
     }
 }
 
@@ -194,4 +226,12 @@ fn read_compiled_package(workspace_path: &Path) -> io::Result<CompiledPackage> {
         metadata_bcs,
         modules,
     })
+}
+
+fn read_publish_payload(workspace_path: &Path) -> io::Result<PublishPayload> {
+    let payload_path = workspace_path.join("publish-payload.json");
+    let contents = fs::read_to_string(payload_path)?;
+    let payload: PublishPayload = serde_json::from_str(&contents)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    Ok(payload)
 }

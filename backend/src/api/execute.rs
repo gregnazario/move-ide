@@ -149,7 +149,7 @@ async fn handle_execute(
     let result = executor.execute(&workspace, &payload, tx.clone()).await;
 
     match result {
-        Ok((exit_code, output, compiled_package)) => {
+        Ok((exit_code, output, compiled_package, publish_payload)) => {
             // Parse errors from output
             let errors = Parser::parse_errors(&output);
             if !errors.is_empty() {
@@ -168,6 +168,7 @@ async fn handle_execute(
                         duration_ms: start.elapsed().as_millis() as u64,
                         bytecode: None,
                         compiled_package,
+                        publish_payload,
                     },
                 })
                 .await;

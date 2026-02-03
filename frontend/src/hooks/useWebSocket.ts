@@ -18,6 +18,11 @@ type DonePayload = {
     duration_ms: number;
     exit_code: number;
     compiled_package?: CompiledPackage | null;
+    publish_payload?: {
+        function: string;
+        type_arguments: string[];
+        arguments: unknown[];
+    } | null;
 };
 
 type ServerMessage =
@@ -156,7 +161,7 @@ export function useWebSocket() {
 
     const execute = useCallback(
         async (
-            command: "compile" | "run" | "test",
+            command: "compile" | "run" | "test" | "build_publish_payload",
             options?: { include_bytecode?: boolean },
         ) => {
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -194,7 +199,7 @@ export function useWebSocket() {
 
     const executeWithResult = useCallback(
         async (
-            command: "compile" | "run" | "test",
+            command: "compile" | "run" | "test" | "build_publish_payload",
             options?: { include_bytecode?: boolean },
         ) => {
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
