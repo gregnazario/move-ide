@@ -61,6 +61,7 @@ interface WorkspaceState {
     createFile: (path: string, content?: string) => void;
     deleteFile: (path: string) => void;
     renameFile: (oldPath: string, newPath: string) => void;
+    moveFolder: (oldDir: string, newDir: string) => void;
     updateFileContent: (path: string, content: string) => void;
     setActiveFile: (path: string | null) => void;
     openTab: (path: string) => void;
@@ -83,6 +84,7 @@ interface WorkspaceState {
         files: FileContent[],
         namedAddresses: Record<string, string>,
     ) => void;
+    deleteFolder: (dir: string) => void;
     reset: () => void;
 }
 
@@ -182,6 +184,40 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                     if (state.activeFile === oldPath) {
                         state.activeFile = newPath;
                     }
+                }
+            }),
+
+        moveFolder: (oldDir, newDir) =>
+            set((state) => {
+                const prefix = `${oldDir}/`;
+                const entries = Array.from(state.files.entries()).filter(
+                    ([path]) => path.startsWith(prefix),
+                );
+                if (entries.length === 0) {
+                    return;
+                }
+
+                for (const [path, file] of entries) {
+                    const suffix = path.slice(prefix.length);
+                    const nextPath = `${newDir}/${suffix}`;
+                    state.files.delete(path);
+                    state.files.set(nextPath, {
+                        ...file,
+                        path: nextPath,
+                        isDirty: true,
+                    });
+                }
+
+                state.openTabs = state.openTabs.map((tab) => {
+                    if (tab.startsWith(prefix)) {
+                        const suffix = tab.slice(prefix.length);
+                        return `${newDir}/${suffix}`;
+                    }
+                    return tab;
+                });
+                if (state.activeFile?.startsWith(prefix)) {
+                    const suffix = state.activeFile.slice(prefix.length);
+                    state.activeFile = `${newDir}/${suffix}`;
                 }
             }),
 
@@ -288,6 +324,27 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 state.output = [];
                 state.errors = [];
                 state.gistId = null;
+            }),
+
+        deleteFolder: (dir) =>
+            set((state) => {
+                const prefix = `${dir}/`;
+                const targets = Array.from(state.files.keys()).filter((path) =>
+                    path.startsWith(prefix),
+                );
+                if (targets.length === 0) {
+                    return;
+                }
+
+                for (const path of targets) {
+                    state.files.delete(path);
+                }
+                state.openTabs = state.openTabs.filter(
+                    (tab) => !tab.startsWith(prefix),
+                );
+                if (state.activeFile?.startsWith(prefix)) {
+                    state.activeFile = state.openTabs[0] ?? null;
+                }
             }),
 
         reset: () =>
