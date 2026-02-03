@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moveLanguageConfig, moveLambdaStartRegex } from "./moveLanguage";
+import { moveLambdaStartRegex, moveLanguageConfig } from "./moveLanguage";
 
 describe("moveLanguageConfig", () => {
     it("includes Move 2.x keywords and types", () => {

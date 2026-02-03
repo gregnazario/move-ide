@@ -2,9 +2,35 @@ import { useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { Header } from "./components/Header";
 import { Workspace } from "./components/Workspace";
-import { useWorkspaceStore } from "./store";
+import { useUiStore, useWorkspaceStore } from "./store";
 
 function App() {
+    const { theme, themeMode, initTheme, syncSystemTheme } = useUiStore();
+
+    useEffect(() => {
+        initTheme();
+    }, [initTheme]);
+
+    useEffect(() => {
+        if (themeMode !== "system") return;
+        const media = window.matchMedia("(prefers-color-scheme: dark)");
+        const handler = () => syncSystemTheme();
+
+        if (media.addEventListener) {
+            media.addEventListener("change", handler);
+        } else {
+            media.addListener(handler);
+        }
+
+        return () => {
+            if (media.removeEventListener) {
+                media.removeEventListener("change", handler);
+            } else {
+                media.removeListener(handler);
+            }
+        };
+    }, [themeMode, syncSystemTheme]);
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const id = params.get("id");
@@ -35,7 +61,7 @@ function App() {
             <Workspace />
             <Toaster
                 position="bottom-right"
-                theme="dark"
+                theme={theme}
                 toastOptions={{
                     style: {
                         background: "var(--bg-secondary)",

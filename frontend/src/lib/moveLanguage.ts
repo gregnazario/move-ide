@@ -1,7 +1,6 @@
 import type { languages } from "monaco-editor";
 
-export const moveLambdaStartRegex =
-    /\|(?!\|)(?=[ \t]*(?:&mut\b|&)?[A-Za-z_])/;
+export const moveLambdaStartRegex = /\|(?!\|)(?=[ \t]*(?:&mut\b|&)?[A-Za-z_])/;
 
 export const moveLanguageConfig: languages.IMonarchLanguage = {
     defaultToken: "",
@@ -149,7 +148,10 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/'[a-zA-Z_][\w$]*/, "tag"],
 
             // Lambda parameters (|x, y| ...)
-            [moveLambdaStartRegex, { token: "operator", next: "@lambdaParams" }],
+            [
+                moveLambdaStartRegex,
+                { token: "operator", next: "@lambdaParams" },
+            ],
 
             // Builtin constants
             [/\b__COMPILE_FOR_TESTING__\b/, "constant"],

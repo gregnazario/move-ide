@@ -7,12 +7,16 @@ import {
     tomlLanguageConfig,
     tomlLanguageConfiguration,
 } from "../lib/tomlLanguage";
-import { useWorkspaceStore } from "../store";
+import { type Theme, useUiStore, useWorkspaceStore } from "../store";
 
 let hasRegisteredLanguages = false;
 let hasDefinedTheme = false;
 
+const getEditorTheme = (currentTheme: Theme) =>
+    currentTheme === "dark" ? "move-ide-dark" : "vs";
+
 export function EditorPane() {
+    const { theme } = useUiStore();
     const {
         files,
         activeFile,
@@ -96,7 +100,7 @@ export function EditorPane() {
             );
         }
 
-        monaco.editor.setTheme("move-ide-dark");
+        monaco.editor.setTheme(getEditorTheme(theme));
 
         // Keyboard shortcuts
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
@@ -109,6 +113,11 @@ export function EditorPane() {
             document.dispatchEvent(new CustomEvent("playground:share"));
         });
     };
+
+    useEffect(() => {
+        if (!monacoRef.current) return;
+        monacoRef.current.editor.setTheme(getEditorTheme(theme));
+    }, [theme]);
 
     // Update error markers when errors change
     useEffect(() => {
@@ -209,7 +218,7 @@ export function EditorPane() {
                         height="100%"
                         language={getLanguage(activeFile)}
                         value={activeFileContent}
-                        theme="move-ide-dark"
+                        theme={getEditorTheme(theme)}
                         onChange={(value) => {
                             if (activeFile && value !== undefined) {
                                 updateFileContent(activeFile, value);

@@ -3,12 +3,15 @@ import {
     ChevronDown,
     Download,
     FlaskConical,
+    Monitor,
+    Moon,
     Play,
     Settings,
     Share2,
+    Sun,
     Wallet,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useWebSocket } from "../hooks/useWebSocket";
 import {
@@ -20,10 +23,11 @@ import {
     getDevnetClient,
     loadDevnetAccount,
 } from "../lib/devnetAccount";
-import { useWorkspaceStore } from "../store";
+import { useUiStore, useWorkspaceStore } from "../store";
 
 export function Header() {
     const { isExecuting, selectedFunction, wsStatus } = useWorkspaceStore();
+    const { themeMode, setThemeMode } = useUiStore();
     const { execute, executeWithResult } = useWebSocket();
     const {
         connected,
@@ -35,12 +39,30 @@ export function Header() {
     } = useWallet();
     const [showRunMenu, setShowRunMenu] = useState(false);
     const [showWalletMenu, setShowWalletMenu] = useState(false);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+    const settingsMenuRef = useRef<HTMLDivElement | null>(null);
     const [devnetAccount, setDevnetAccount] =
         useState<DevnetAccountData | null>(null);
 
     useEffect(() => {
         setDevnetAccount(loadDevnetAccount());
     }, []);
+
+    useEffect(() => {
+        if (!showSettingsMenu) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                settingsMenuRef.current &&
+                !settingsMenuRef.current.contains(event.target as Node)
+            ) {
+                setShowSettingsMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showSettingsMenu]);
 
     const walletList = useMemo(
         () => wallets.filter((wallet) => wallet.readyState !== "NotDetected"),
@@ -269,7 +291,7 @@ export function Header() {
             {/* Center: Actions */}
             <div className="flex items-center gap-2">
                 {/* Run Button with Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={settingsMenuRef}>
                     <div className="flex">
                         <button
                             type="button"
@@ -477,6 +499,72 @@ export function Header() {
                     )}
                 </div>
 
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setShowSettingsMenu((show) => !show)}
+                        className="p-1.5 hover:bg-bg-tertiary rounded transition-colors"
+                        aria-label="Settings"
+                    >
+                        <Settings size={18} className="text-text-secondary" />
+                    </button>
+
+                    {showSettingsMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-bg-tertiary border border-border rounded shadow-lg p-3 z-50 space-y-2 text-xs">
+                            <div className="text-text-secondary uppercase tracking-wide">
+                                Theme
+                            </div>
+                            <div className="space-y-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setThemeMode("light");
+                                        setShowSettingsMenu(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                                        themeMode === "light"
+                                            ? "bg-bg-secondary text-text-primary"
+                                            : "hover:bg-bg-secondary text-text-secondary"
+                                    }`}
+                                >
+                                    <Sun size={14} />
+                                    Light
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setThemeMode("dark");
+                                        setShowSettingsMenu(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                                        themeMode === "dark"
+                                            ? "bg-bg-secondary text-text-primary"
+                                            : "hover:bg-bg-secondary text-text-secondary"
+                                    }`}
+                                >
+                                    <Moon size={14} />
+                                    Dark
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setThemeMode("system");
+                                        setShowSettingsMenu(false);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                                        themeMode === "system"
+                                            ? "bg-bg-secondary text-text-primary"
+                                            : "hover:bg-bg-secondary text-text-secondary"
+                                    }`}
+                                >
+                                    <Monitor size={14} />
+                                    System
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                     <span
                         className={`w-2 h-2 rounded-full ${
@@ -493,12 +581,6 @@ export function Header() {
                           ? "Connecting..."
                           : "Disconnected"}
                 </div>
-                <button
-                    type="button"
-                    className="p-1.5 hover:bg-bg-tertiary rounded transition-colors"
-                >
-                    <Settings size={18} className="text-text-secondary" />
-                </button>
             </div>
         </header>
     );

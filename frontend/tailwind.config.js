@@ -4,17 +4,17 @@ export default {
     theme: {
         extend: {
             colors: {
-                "bg-primary": "#0d1117",
-                "bg-secondary": "#161b22",
-                "bg-tertiary": "#21262d",
-                border: "#30363d",
-                "text-primary": "#e6edf3",
-                "text-secondary": "#8b949e",
-                "text-link": "#58a6ff",
-                accent: "#238636",
-                "accent-hover": "#2ea043",
-                warning: "#d29922",
-                error: "#f85149",
+                "bg-primary": "var(--bg-primary)",
+                "bg-secondary": "var(--bg-secondary)",
+                "bg-tertiary": "var(--bg-tertiary)",
+                border: "var(--border)",
+                "text-primary": "var(--text-primary)",
+                "text-secondary": "var(--text-secondary)",
+                "text-link": "var(--text-link)",
+                accent: "var(--accent)",
+                "accent-hover": "var(--accent-hover)",
+                warning: "var(--warning)",
+                error: "var(--error)",
             },
             fontFamily: {
                 mono: ['"JetBrains Mono"', '"Fira Code"', "monospace"],
