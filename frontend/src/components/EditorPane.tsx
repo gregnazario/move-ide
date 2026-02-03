@@ -3,7 +3,13 @@ import { X } from "lucide-react";
 import type { editor } from "monaco-editor";
 import { useEffect, useRef } from "react";
 import { moveLanguageConfig } from "../lib/moveLanguage";
+import {
+    tomlLanguageConfig,
+    tomlLanguageConfiguration,
+} from "../lib/tomlLanguage";
 import { useWorkspaceStore } from "../store";
+
+let hasRegisteredLanguages = false;
 
 export function EditorPane() {
     const {
@@ -24,30 +30,45 @@ export function EditorPane() {
         editorRef.current = editor;
         monacoRef.current = monaco;
 
-        // Register Move language
-        monaco.languages.register({ id: "move" });
-        monaco.languages.setMonarchTokensProvider("move", moveLanguageConfig);
+        if (!hasRegisteredLanguages) {
+            hasRegisteredLanguages = true;
+            // Register Move language
+            monaco.languages.register({ id: "move" });
+            monaco.languages.setMonarchTokensProvider(
+                "move",
+                moveLanguageConfig,
+            );
+            monaco.languages.setLanguageConfiguration("move", {
+                comments: {
+                    lineComment: "//",
+                    blockComment: ["/*", "*/"],
+                },
+                brackets: [
+                    ["{", "}"],
+                    ["[", "]"],
+                    ["(", ")"],
+                    ["<", ">"],
+                ],
+                autoClosingPairs: [
+                    { open: "{", close: "}" },
+                    { open: "[", close: "]" },
+                    { open: "(", close: ")" },
+                    { open: "<", close: ">" },
+                    { open: '"', close: '"' },
+                ],
+            });
 
-        // Set up error markers when errors change
-        monaco.languages.setLanguageConfiguration("move", {
-            comments: {
-                lineComment: "//",
-                blockComment: ["/*", "*/"],
-            },
-            brackets: [
-                ["{", "}"],
-                ["[", "]"],
-                ["(", ")"],
-                ["<", ">"],
-            ],
-            autoClosingPairs: [
-                { open: "{", close: "}" },
-                { open: "[", close: "]" },
-                { open: "(", close: ")" },
-                { open: "<", close: ">" },
-                { open: '"', close: '"' },
-            ],
-        });
+            // Register TOML language
+            monaco.languages.register({ id: "toml" });
+            monaco.languages.setMonarchTokensProvider(
+                "toml",
+                tomlLanguageConfig,
+            );
+            monaco.languages.setLanguageConfiguration(
+                "toml",
+                tomlLanguageConfiguration,
+            );
+        }
 
         // Keyboard shortcuts
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
