@@ -10,6 +10,7 @@ import {
 import { useWorkspaceStore } from "../store";
 
 let hasRegisteredLanguages = false;
+let hasDefinedTheme = false;
 
 export function EditorPane() {
     const {
@@ -29,6 +30,31 @@ export function EditorPane() {
     const handleEditorMount: OnMount = (editor, monaco) => {
         editorRef.current = editor;
         monacoRef.current = monaco;
+
+        if (!hasDefinedTheme) {
+            hasDefinedTheme = true;
+            monaco.editor.defineTheme("move-ide-dark", {
+                base: "vs-dark",
+                inherit: true,
+                rules: [
+                    { token: "keyword", foreground: "ff7b72" },
+                    { token: "type", foreground: "7ee787" },
+                    { token: "type.identifier", foreground: "7ee787" },
+                    { token: "number", foreground: "79c0ff" },
+                    { token: "string", foreground: "a5d6ff" },
+                    { token: "comment", foreground: "8b949e" },
+                    { token: "annotation", foreground: "d2a8ff" },
+                    { token: "constant", foreground: "ffa657" },
+                    { token: "variable.parameter", foreground: "e3b341" },
+                ],
+                colors: {
+                    "editor.foreground": "#e6edf3",
+                    "editor.background": "#0d1117",
+                    "editorLineNumber.foreground": "#30363d",
+                    "editorLineNumber.activeForeground": "#8b949e",
+                },
+            });
+        }
 
         if (!hasRegisteredLanguages) {
             hasRegisteredLanguages = true;
@@ -69,6 +95,8 @@ export function EditorPane() {
                 tomlLanguageConfiguration,
             );
         }
+
+        monaco.editor.setTheme("move-ide-dark");
 
         // Keyboard shortcuts
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
@@ -181,7 +209,7 @@ export function EditorPane() {
                         height="100%"
                         language={getLanguage(activeFile)}
                         value={activeFileContent}
-                        theme="vs-dark"
+                        theme="move-ide-dark"
                         onChange={(value) => {
                             if (activeFile && value !== undefined) {
                                 updateFileContent(activeFile, value);
