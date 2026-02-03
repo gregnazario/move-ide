@@ -1,40 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useWorkspaceStore } from "../store";
-import type { MoveError } from "../store";
+import type { DonePayload, ServerMessage } from "../types/execute";
 
-type CompiledModule = {
-    name: string;
-    bytecode: string;
+type UseWebSocketOptions = {
+    enabled?: boolean;
 };
 
-type CompiledPackage = {
-    package_name: string;
-    metadata_bcs: string;
-    modules: CompiledModule[];
-};
-
-type DonePayload = {
-    success: boolean;
-    duration_ms: number;
-    exit_code: number;
-    compiled_package?: CompiledPackage | null;
-    publish_payload?: {
-        function: string;
-        type_arguments: string[];
-        arguments: unknown[];
-    } | null;
-};
-
-type ServerMessage =
-    | { type: "pong" }
-    | { type: "started"; payload: { command: string } }
-    | { type: "stdout"; payload: { data: string } }
-    | { type: "stderr"; payload: { data: string } }
-    | { type: "errors"; payload: { errors: MoveError[] } }
-    | { type: "done"; payload: DonePayload }
-    | { type: "failed"; payload: { message: string } };
-
-export function useWebSocket() {
+export function useWebSocket(options: UseWebSocketOptions = {}) {
+    const enabled = options.enabled ?? true;
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
@@ -49,6 +22,7 @@ export function useWebSocket() {
         useWorkspaceStore();
 
     const connect = useCallback(() => {
+        if (!enabled) return;
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
         setWsStatus("connecting");
@@ -92,7 +66,7 @@ export function useWebSocket() {
                 console.error("Failed to parse WebSocket message:", e);
             }
         };
-    }, [setWsStatus]);
+    }, [enabled, setWsStatus]);
 
     const handleMessage = (msg: ServerMessage) => {
         switch (msg.type) {
@@ -126,7 +100,7 @@ export function useWebSocket() {
                 break;
 
             case "errors":
-                setErrors(msg.payload.errors as MoveError[]);
+                setErrors(msg.payload.errors);
                 break;
 
             case "done":
@@ -218,6 +192,16 @@ export function useWebSocket() {
 
     // Connect on mount
     useEffect(() => {
+        if (!enabled) {
+            setWsStatus("disconnected");
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            wsRef.current?.close();
+            wsRef.current = null;
+            return;
+        }
+
         connect();
 
         // Keepalive ping
@@ -234,7 +218,7 @@ export function useWebSocket() {
             }
             wsRef.current?.close();
         };
-    }, [connect]);
+    }, [connect, enabled, setWsStatus]);
 
     return { execute, executeWithResult };
 }

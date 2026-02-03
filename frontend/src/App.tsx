@@ -12,6 +12,21 @@ function App() {
     }, [initTheme]);
 
     useEffect(() => {
+        const ensureAuth = async () => {
+            try {
+                await fetch("/api/auth/issue", {
+                    method: "POST",
+                    credentials: "include",
+                });
+            } catch (err) {
+                console.warn("Failed to issue auth token", err);
+            }
+        };
+
+        void ensureAuth();
+    }, []);
+
+    useEffect(() => {
         if (themeMode !== "system") return;
         const media = window.matchMedia("(prefers-color-scheme: dark)");
         const handler = () => syncSystemTheme();
@@ -38,7 +53,18 @@ function App() {
 
         const loadShare = async () => {
             try {
-                const response = await fetch(`/api/load/${id}`);
+                let response = await fetch(`/api/load/${id}`, {
+                    credentials: "include",
+                });
+                if (response.status === 401 || response.status === 403) {
+                    await fetch("/api/auth/issue", {
+                        method: "POST",
+                        credentials: "include",
+                    });
+                    response = await fetch(`/api/load/${id}`, {
+                        credentials: "include",
+                    });
+                }
                 if (!response.ok) {
                     throw new Error("Failed to load shared code");
                 }

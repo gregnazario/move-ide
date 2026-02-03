@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useWebSocket } from "../hooks/useWebSocket";
+import { useExecution } from "../hooks/useExecution";
 import {
     type DevnetAccountData,
     accountFromStored,
@@ -28,7 +28,7 @@ import { useUiStore, useWorkspaceStore } from "../store";
 export function Header() {
     const { isExecuting, selectedFunction, wsStatus } = useWorkspaceStore();
     const { themeMode, setThemeMode } = useUiStore();
-    const { execute, executeWithResult } = useWebSocket();
+    const { execute, executeWithResult, mode } = useExecution();
     const {
         connected,
         account,
@@ -69,6 +69,7 @@ export function Header() {
         () => wallets.filter((wallet) => wallet.readyState !== "NotDetected"),
         [wallets],
     );
+    const executionReady = mode === "serverless" || wsStatus === "connected";
 
     const handleRun = async () => {
         if (!selectedFunction) {
@@ -91,14 +92,31 @@ export function Header() {
         }));
 
         try {
-            const response = await fetch("/api/share", {
+            let response = await fetch("/api/share", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({
                     files: filesArray,
                     named_addresses: namedAddresses,
                 }),
             });
+
+            if (response.status === 401 || response.status === 403) {
+                await fetch("/api/auth/issue", {
+                    method: "POST",
+                    credentials: "include",
+                });
+                response = await fetch("/api/share", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        files: filesArray,
+                        named_addresses: namedAddresses,
+                    }),
+                });
+            }
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -336,7 +354,7 @@ export function Header() {
                         <button
                             type="button"
                             onClick={handleRun}
-                            disabled={isExecuting || wsStatus !== "connected"}
+                            disabled={isExecuting || !executionReady}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-l text-white text-sm font-medium transition-colors"
                         >
                             <Play size={14} fill="currentColor" />
@@ -414,7 +432,7 @@ export function Header() {
                 <button
                     type="button"
                     onClick={handleTest}
-                    disabled={isExecuting || wsStatus !== "connected"}
+                    disabled={isExecuting || !executionReady}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-border disabled:opacity-50 rounded text-sm font-medium transition-colors"
                 >
                     <FlaskConical size={14} />
@@ -641,18 +659,22 @@ export function Header() {
                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                     <span
                         className={`w-2 h-2 rounded-full ${
-                            wsStatus === "connected"
+                            mode === "serverless"
                                 ? "bg-accent"
-                                : wsStatus === "connecting"
-                                  ? "bg-warning animate-pulse"
-                                  : "bg-error"
+                                : wsStatus === "connected"
+                                  ? "bg-accent"
+                                  : wsStatus === "connecting"
+                                    ? "bg-warning animate-pulse"
+                                    : "bg-error"
                         }`}
                     />
-                    {wsStatus === "connected"
-                        ? "Connected"
-                        : wsStatus === "connecting"
-                          ? "Connecting..."
-                          : "Disconnected"}
+                    {mode === "serverless"
+                        ? "Serverless"
+                        : wsStatus === "connected"
+                          ? "Connected"
+                          : wsStatus === "connecting"
+                            ? "Connecting..."
+                            : "Disconnected"}
                 </div>
             </div>
         </header>

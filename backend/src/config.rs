@@ -20,10 +20,21 @@ pub struct Config {
 
     // Feature flags
     pub enable_tests: bool,
+
+    // Auth / CORS
+    pub auth_jwt_secret: String,
+    pub frontend_origins: Vec<String>,
 }
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
+        let frontend_origins = std::env::var("PLAYGROUND_FRONTEND_ORIGINS")
+            .unwrap_or_else(|_| "http://localhost:3000".into())
+            .split(',')
+            .map(|origin| origin.trim().to_string())
+            .filter(|origin| !origin.is_empty())
+            .collect::<Vec<_>>();
+
         Ok(Config {
             host: std::env::var("PLAYGROUND_HOST").unwrap_or_else(|_| "0.0.0.0".into()),
             port: std::env::var("PLAYGROUND_PORT")
@@ -60,6 +71,10 @@ impl Config {
             enable_tests: std::env::var("PLAYGROUND_ENABLE_TESTS")
                 .unwrap_or_else(|_| "true".into())
                 .parse()?,
+
+            auth_jwt_secret: std::env::var("AUTH_JWT_SECRET")
+                .unwrap_or_else(|_| "dev-secret".into()),
+            frontend_origins,
         })
     }
 }
