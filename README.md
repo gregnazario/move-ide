@@ -130,7 +130,8 @@ APTOS_CLI_PATH=aptos
    - `UPSTASH_REDIS_REST_TOKEN`
    - `APTOS_CLI_PATH` (optional, if `aptos` is not on PATH)
 3. Ensure the Aptos CLI is available in the function runtime:
-   - Set `APTOS_CLI_PATH` if you bundle it, or install it as part of the build.
+   - The serverless functions use `@aptos-labs/aptos-cli` from `node_modules/.bin/aptos` by default.
+   - Override with `APTOS_CLI_PATH` if you provide a custom binary.
 4. Deploy. The frontend will auto-detect WebSocket availability and fall back to serverless.
 
 Note: To use WebSocket mode, the backend must be deployed separately (e.g., Fly/Render) and on the same site/subdomain so the auth cookie is sent.

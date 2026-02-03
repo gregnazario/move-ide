@@ -23,8 +23,18 @@ export type ExecutionResult = {
 
 const DEFAULT_APTOS_PATH = "aptos";
 
-function getAptosPath() {
-    return process.env.APTOS_CLI_PATH ?? DEFAULT_APTOS_PATH;
+async function getAptosPath() {
+    if (process.env.APTOS_CLI_PATH) {
+        return process.env.APTOS_CLI_PATH;
+    }
+
+    const localBin = path.join(process.cwd(), "node_modules", ".bin", "aptos");
+    try {
+        await fs.access(localBin);
+        return localBin;
+    } catch {
+        return DEFAULT_APTOS_PATH;
+    }
 }
 
 async function writeFiles(root: string, files: ExecutePayload["files"]) {
@@ -100,7 +110,8 @@ export async function runExecution(
         await writeFiles(workspace, payload.files);
 
         const args = buildArgs(payload, workspace);
-        const child = spawn(getAptosPath(), args, {
+        const aptosPath = await getAptosPath();
+        const child = spawn(aptosPath, args, {
             cwd: workspace,
             env: { ...process.env, HOME: workspace },
         });
