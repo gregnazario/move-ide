@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 use crate::error::AppError;
 use crate::types::{FileEntry, LoadResponse, ShareResponse};
@@ -28,10 +29,14 @@ struct GistResponse {
     html_url: String,
 }
 
+const METADATA_VERSION: &str = "1.0";
+
 #[derive(Debug, Serialize, Deserialize)]
 struct PlaygroundMetadata {
+    #[serde(default)]
     named_addresses: HashMap<String, String>,
-    version: String,
+    #[serde(default)]
+    version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     selected_function: Option<String>,
 }
@@ -66,7 +71,7 @@ impl GistService {
         // Add metadata file
         let metadata = PlaygroundMetadata {
             named_addresses: named_addresses.clone(),
-            version: "1.0".to_string(),
+            version: Some(METADATA_VERSION.to_string()),
             selected_function: None,
         };
         gist_files.insert(
@@ -164,8 +169,24 @@ impl GistService {
 
                 if filename == ".playground.json" {
                     // Parse metadata
-                    if let Ok(metadata) = serde_json::from_str::<PlaygroundMetadata>(&content) {
-                        named_addresses = metadata.named_addresses;
+                    match serde_json::from_str::<PlaygroundMetadata>(&content) {
+                        Ok(metadata) => {
+                            if let Some(version) = metadata.version.as_deref() {
+                                if version != METADATA_VERSION {
+                                    warn!(
+                                        gist_id = %id,
+                                        %version,
+                                        "Unknown playground metadata version"
+                                    );
+                                }
+                            } else {
+                                warn!(gist_id = %id, "Missing playground metadata version");
+                            }
+                            named_addresses = metadata.named_addresses;
+                        }
+                        Err(err) => {
+                            warn!(gist_id = %id, ?err, "Failed to parse playground metadata");
+                        }
                     }
                 } else {
                     // Convert gist filename back to path (replace _ with /)

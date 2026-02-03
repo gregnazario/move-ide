@@ -142,7 +142,7 @@ Request:
       "content": "[package]\nname = \"playground\"..."
     }
   ],
-  "namedAddresses": {
+  "named_addresses": {
     "playground": "0x1"
   }
 }
@@ -151,7 +151,7 @@ Response: 201 Created
 {
   "id": "a1b2c3d4e5f6",
   "url": "https://moveplayground.sed.fyi/?id=a1b2c3d4e5f6",
-  "gistUrl": "https://gist.github.com/a1b2c3d4e5f6"
+  "gist_url": "https://gist.github.com/a1b2c3d4e5f6"
 }
 
 Errors:
@@ -167,8 +167,8 @@ GET /api/load/:id
 Response: 200 OK
 {
   "files": [...],
-  "namedAddresses": {...},
-  "createdAt": "2024-01-15T10:30:00Z"
+  "named_addresses": {...},
+  "created_at": "2024-01-15T10:30:00Z"
 }
 
 Errors:
@@ -197,7 +197,7 @@ ws://localhost:8080/ws/execute
     ],
     "command": "compile" | "run" | "test",
     "entryFunction": "playground::main::hello",  // Required for "run"
-    "namedAddresses": { "playground": "0x1" },
+    "named_addresses": { "playground": "0x1" },
     "options": {
       "verbose": false,
       "includeBytecode": false

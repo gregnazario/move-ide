@@ -237,7 +237,7 @@ sequenceDiagram
 |--------|----------------|
 | Storage | GitHub Gists (anonymous) |
 | URL format | `https://moveplayground.sed.fyi/?id=<GIST_ID>` |
-| Persisted | files, namedAddresses, selectedFunction |
+| Persisted | files, named_addresses |
 | Expiry | Never (GitHub Gist retention) |
 
 ### F5: Embedding
@@ -305,9 +305,7 @@ sequenceDiagram
     "sources/main.move": { "content": "..." },
     ".playground.json": {
       "content": {
-        "namedAddresses": { "playground": "0x1" },
-        "selectedFunction": "playground::main::hello",
-        "createdAt": "2024-01-15T10:30:00Z",
+        "named_addresses": { "playground": "0x1" },
         "version": "1.0"
       }
     }
