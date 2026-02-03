@@ -1,19 +1,51 @@
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
 import {
     ChevronDown,
+    Download,
     FlaskConical,
     Play,
     Settings,
     Share2,
+    Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useWebSocket } from "../hooks/useWebSocket";
+import {
+    type DevnetAccountData,
+    accountFromStored,
+    createDevnetAccount,
+    exportDevnetAccount,
+    fundDevnetAccount,
+    getDevnetClient,
+    loadDevnetAccount,
+} from "../lib/devnetAccount";
 import { useWorkspaceStore } from "../store";
 
 export function Header() {
     const { isExecuting, selectedFunction, wsStatus } = useWorkspaceStore();
-    const { execute } = useWebSocket();
+    const { execute, executeWithResult } = useWebSocket();
+    const {
+        connected,
+        account,
+        wallets,
+        connect,
+        disconnect,
+        signAndSubmitTransaction,
+    } = useWallet();
     const [showRunMenu, setShowRunMenu] = useState(false);
+    const [showWalletMenu, setShowWalletMenu] = useState(false);
+    const [devnetAccount, setDevnetAccount] =
+        useState<DevnetAccountData | null>(null);
+
+    useEffect(() => {
+        setDevnetAccount(loadDevnetAccount());
+    }, []);
+
+    const walletList = useMemo(
+        () => wallets.filter((wallet) => wallet.readyState !== "NotDetected"),
+        [wallets],
+    );
 
     const handleRun = async () => {
         if (!selectedFunction) {
@@ -39,11 +71,15 @@ export function Header() {
             const response = await fetch("/api/share", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ files: filesArray, namedAddresses }),
+                body: JSON.stringify({
+                    files: filesArray,
+                    named_addresses: namedAddresses,
+                }),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to create share link");
+                const errorText = await response.text();
+                throw new Error(errorText || "Failed to create share link");
             }
 
             const data = await response.json();
@@ -59,6 +95,164 @@ export function Header() {
             toast.error(`Failed to share: ${(err as Error).message}`);
         }
     };
+
+    const handleExport = async () => {
+        const { files } = useWorkspaceStore.getState();
+        const { default: JSZip } = await import("jszip");
+        const zip = new JSZip();
+
+        for (const file of files.values()) {
+            zip.file(file.path, file.content);
+        }
+
+        const blob = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "move-playground.zip";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        toast.success("Downloaded ZIP");
+    };
+
+    const handleCreateDevnetAccount = async () => {
+        const data = await createDevnetAccount();
+        setDevnetAccount(data);
+        toast.success("Devnet account created (local-only)");
+    };
+
+    const handleExportDevnetAccount = () => {
+        if (!devnetAccount) {
+            toast.error("No devnet account to export");
+            return;
+        }
+        exportDevnetAccount(devnetAccount);
+    };
+
+    const base64ToBytes = (data: string) => {
+        const binary = atob(data);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+    };
+
+    const compileForPublish = async () => {
+        const result = await executeWithResult("compile", {
+            include_bytecode: true,
+        });
+        if (!result.compiled_package) {
+            throw new Error("No compiled package returned");
+        }
+        return result.compiled_package;
+    };
+
+    const handlePublish = async () => {
+        try {
+            const compiled = await compileForPublish();
+            const metadataBytes = base64ToBytes(compiled.metadata_bcs);
+            const moduleBytes = compiled.modules.map((moduleEntry) =>
+                base64ToBytes(moduleEntry.bytecode),
+            );
+
+            if (connected) {
+                const response = await signAndSubmitTransaction({
+                    data: {
+                        function: "0x1::code::publish_package_txn",
+                        functionArguments: [metadataBytes, moduleBytes],
+                    },
+                });
+                toast.success(`Publish submitted: ${response.hash}`);
+                return;
+            }
+
+            if (!devnetAccount) {
+                toast.error("Connect a wallet or create a devnet account");
+                return;
+            }
+
+            const signer = await accountFromStored(devnetAccount);
+            const aptosDevnetClient = await getDevnetClient();
+            const transaction =
+                await aptosDevnetClient.transaction.build.simple({
+                    sender: signer.accountAddress,
+                    data: {
+                        function: "0x1::code::publish_package_txn",
+                        functionArguments: [metadataBytes, moduleBytes],
+                    },
+                });
+            const pending = await aptosDevnetClient.signAndSubmitTransaction({
+                signer,
+                transaction,
+            });
+            toast.success(`Publish submitted: ${pending.hash}`);
+        } catch (err) {
+            toast.error(`Publish failed: ${(err as Error).message}`);
+        }
+    };
+
+    const handleRunOnChain = async () => {
+        if (!selectedFunction) {
+            toast.error("Please select an entry function");
+            return;
+        }
+        try {
+            if (connected) {
+                const response = await signAndSubmitTransaction({
+                    data: {
+                        function:
+                            selectedFunction as `${string}::${string}::${string}`,
+                        functionArguments: [],
+                    },
+                });
+                toast.success(`Transaction submitted: ${response.hash}`);
+                return;
+            }
+
+            if (!devnetAccount) {
+                toast.error("Connect a wallet or create a devnet account");
+                return;
+            }
+
+            const signer = await accountFromStored(devnetAccount);
+            const aptosDevnetClient = await getDevnetClient();
+            const transaction =
+                await aptosDevnetClient.transaction.build.simple({
+                    sender: signer.accountAddress,
+                    data: {
+                        function:
+                            selectedFunction as `${string}::${string}::${string}`,
+                        functionArguments: [],
+                    },
+                });
+            const pending = await aptosDevnetClient.signAndSubmitTransaction({
+                signer,
+                transaction,
+            });
+            toast.success(`Transaction submitted: ${pending.hash}`);
+        } catch (err) {
+            toast.error(`Run failed: ${(err as Error).message}`);
+        }
+    };
+
+    const handleFundDevnetAccount = async () => {
+        if (!devnetAccount) {
+            toast.error("Create a devnet account first");
+            return;
+        }
+        try {
+            await fundDevnetAccount(devnetAccount.address);
+            toast.success("Devnet account funded");
+        } catch (err) {
+            toast.error(`Funding failed: ${(err as Error).message}`);
+        }
+    };
+
+    const canOnchain = connected || Boolean(devnetAccount);
+    const canRunOnChain = canOnchain && Boolean(selectedFunction);
 
     return (
         <header className="h-12 bg-bg-secondary border-b border-border flex items-center justify-between px-4">
@@ -117,6 +311,28 @@ export function Header() {
                             >
                                 Compile
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handlePublish();
+                                    setShowRunMenu(false);
+                                }}
+                                disabled={!canOnchain}
+                                className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
+                            >
+                                Publish (Devnet)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handleRunOnChain();
+                                    setShowRunMenu(false);
+                                }}
+                                disabled={!canRunOnChain}
+                                className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
+                            >
+                                Run (Devnet)
+                            </button>
                         </div>
                     )}
                 </div>
@@ -141,10 +357,126 @@ export function Header() {
                     <Share2 size={14} />
                     Share
                 </button>
+
+                {/* Export Button */}
+                <button
+                    type="button"
+                    onClick={() => void handleExport()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-bg-tertiary hover:bg-border rounded text-sm font-medium transition-colors"
+                >
+                    <Download size={14} />
+                    Export
+                </button>
             </div>
 
             {/* Right: Settings */}
             <div className="flex items-center gap-3">
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setShowWalletMenu((show) => !show)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-bg-tertiary hover:bg-border rounded text-xs font-medium transition-colors"
+                    >
+                        <Wallet size={14} />
+                        {connected
+                            ? `${account?.address?.toString().slice(0, 6)}…`
+                            : "Connect"}
+                    </button>
+
+                    {showWalletMenu && (
+                        <div className="absolute right-0 mt-2 w-72 bg-bg-tertiary border border-border rounded shadow-lg p-3 z-50 space-y-3 text-xs">
+                            <div className="space-y-2">
+                                <div className="text-text-secondary uppercase tracking-wide">
+                                    AIP-62 Wallets
+                                </div>
+                                {connected ? (
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-text-primary">
+                                            {account?.address?.toString()}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => disconnect()}
+                                            className="px-2 py-1 bg-bg-secondary hover:bg-border rounded"
+                                        >
+                                            Disconnect
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {walletList.length === 0 ? (
+                                            <span className="text-text-secondary">
+                                                No AIP-62 wallets detected.
+                                            </span>
+                                        ) : (
+                                            walletList.map((wallet) => (
+                                                <button
+                                                    key={wallet.name}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        connect(wallet.name)
+                                                    }
+                                                    className="w-full text-left px-2 py-1 bg-bg-secondary hover:bg-border rounded"
+                                                >
+                                                    {wallet.name}
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2 border-t border-border pt-2">
+                                <div className="text-text-secondary uppercase tracking-wide">
+                                    Devnet Test Account
+                                </div>
+                                <p className="text-text-secondary">
+                                    Stored in localStorage. Export if needed.
+                                    Not recommended for real funds.
+                                </p>
+                                {devnetAccount ? (
+                                    <div className="space-y-2">
+                                        <div className="text-text-primary break-all">
+                                            {devnetAccount.address}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={
+                                                    handleExportDevnetAccount
+                                                }
+                                                className="px-2 py-1 bg-bg-secondary hover:bg-border rounded"
+                                            >
+                                                Export
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            void handleCreateDevnetAccount()
+                                        }
+                                        className="w-full px-2 py-1 bg-bg-secondary hover:bg-border rounded"
+                                    >
+                                        Create Devnet Account
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        void handleFundDevnetAccount()
+                                    }
+                                    disabled={!devnetAccount}
+                                    className="w-full px-2 py-1 bg-bg-secondary hover:bg-border rounded disabled:opacity-50"
+                                >
+                                    Fund Devnet Account (Faucet)
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                     <span
                         className={`w-2 h-2 rounded-full ${

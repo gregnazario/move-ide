@@ -2,20 +2,31 @@ import { useCallback, useEffect, useRef } from "react";
 import { useWorkspaceStore } from "../store";
 import type { MoveError } from "../store";
 
+type CompiledModule = {
+    name: string;
+    bytecode: string;
+};
+
+type CompiledPackage = {
+    package_name: string;
+    metadata_bcs: string;
+    modules: CompiledModule[];
+};
+
+type DonePayload = {
+    success: boolean;
+    duration_ms: number;
+    exit_code: number;
+    compiled_package?: CompiledPackage | null;
+};
+
 type ServerMessage =
     | { type: "pong" }
     | { type: "started"; payload: { command: string } }
     | { type: "stdout"; payload: { data: string } }
     | { type: "stderr"; payload: { data: string } }
     | { type: "errors"; payload: { errors: MoveError[] } }
-    | {
-          type: "done";
-          payload: {
-              success: boolean;
-              duration_ms: number;
-              exit_code: number;
-          };
-      }
+    | { type: "done"; payload: DonePayload }
     | { type: "failed"; payload: { message: string } };
 
 export function useWebSocket() {
@@ -24,6 +35,10 @@ export function useWebSocket() {
         null,
     );
     const reconnectAttemptsRef = useRef(0);
+    const pendingRef = useRef<{
+        resolve: (payload: DonePayload) => void;
+        reject: (error: Error) => void;
+    } | null>(null);
 
     const { setWsStatus, setIsExecuting, addOutput, setErrors, clearOutput } =
         useWorkspaceStore();
@@ -118,6 +133,10 @@ export function useWebSocket() {
                         : `Failed with exit code ${msg.payload.exit_code}`,
                     timestamp: Date.now(),
                 });
+                if (pendingRef.current) {
+                    pendingRef.current.resolve(msg.payload);
+                    pendingRef.current = null;
+                }
                 break;
 
             case "failed":
@@ -127,12 +146,19 @@ export function useWebSocket() {
                     content: `Error: ${msg.payload.message}`,
                     timestamp: Date.now(),
                 });
+                if (pendingRef.current) {
+                    pendingRef.current.reject(new Error(msg.payload.message));
+                    pendingRef.current = null;
+                }
                 break;
         }
     };
 
     const execute = useCallback(
-        async (command: "compile" | "run" | "test") => {
+        async (
+            command: "compile" | "run" | "test",
+            options?: { include_bytecode?: boolean },
+        ) => {
             if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
                 console.error("WebSocket not connected");
                 return;
@@ -157,13 +183,32 @@ export function useWebSocket() {
                     entry_function:
                         command === "run" ? selectedFunction : undefined,
                     named_addresses: namedAddresses,
-                    options: {},
+                    options: { include_bytecode: options?.include_bytecode },
                 },
             };
 
             wsRef.current.send(JSON.stringify(message));
         },
         [clearOutput, setErrors],
+    );
+
+    const executeWithResult = useCallback(
+        async (
+            command: "compile" | "run" | "test",
+            options?: { include_bytecode?: boolean },
+        ) => {
+            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+                throw new Error("WebSocket not connected");
+            }
+            if (pendingRef.current) {
+                throw new Error("Another command is already in progress");
+            }
+            return new Promise<DonePayload>((resolve, reject) => {
+                pendingRef.current = { resolve, reject };
+                void execute(command, options);
+            });
+        },
+        [execute],
     );
 
     // Connect on mount
@@ -186,5 +231,5 @@ export function useWebSocket() {
         };
     }, [connect]);
 
-    return { execute };
+    return { execute, executeWithResult };
 }

@@ -55,11 +55,25 @@ pub struct ErrorsPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompiledModule {
+    pub name: String,
+    pub bytecode: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompiledPackage {
+    pub package_name: String,
+    pub metadata_bcs: String,
+    pub modules: Vec<CompiledModule>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DonePayload {
     pub success: bool,
     pub exit_code: i32,
     pub duration_ms: u64,
     pub bytecode: Option<String>,
+    pub compiled_package: Option<CompiledPackage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

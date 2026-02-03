@@ -79,6 +79,10 @@ interface WorkspaceState {
     setGistId: (id: string | null) => void;
 
     loadTemplate: () => void;
+    loadWorkspace: (
+        files: FileContent[],
+        namedAddresses: Record<string, string>,
+    ) => void;
     reset: () => void;
 }
 
@@ -267,6 +271,23 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                 state.openTabs = ["sources/main.move", "Move.toml"];
                 state.output = [];
                 state.errors = [];
+            }),
+
+        loadWorkspace: (filesList, namedAddresses) =>
+            set((state) => {
+                const files = new Map<string, FileContent>();
+                for (const file of filesList) {
+                    files.set(file.path, { ...file, isDirty: false });
+                }
+                state.files = files;
+                state.openTabs = Array.from(files.keys());
+                state.activeFile = state.openTabs[0] ?? null;
+                state.namedAddresses = namedAddresses;
+                state.selectedFunction = null;
+                state.availableFunctions = [];
+                state.output = [];
+                state.errors = [];
+                state.gistId = null;
             }),
 
         reset: () =>

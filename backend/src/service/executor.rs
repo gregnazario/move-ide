@@ -1,6 +1,7 @@
 use std::process::Stdio;
+use std::{fs, io, path::Path};
 
-use std::io;
+use base64::Engine;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::mpsc;
@@ -23,7 +24,7 @@ impl<'a> Executor<'a> {
         workspace: &Workspace,
         payload: &ExecutePayload,
         tx: mpsc::Sender<ServerMessage>,
-    ) -> Result<(i32, String), std::io::Error> {
+    ) -> Result<(i32, String, Option<CompiledPackage>), std::io::Error> {
         let mut cmd = Command::new(&self.config.aptos_cli_path);
 
         // Set working directory
@@ -137,6 +138,60 @@ impl<'a> Executor<'a> {
         let combined_output = format!("{}{}", stdout_output, stderr_output);
         let exit_code = status.code().unwrap_or(-1);
 
-        Ok((exit_code, combined_output))
+        let compiled_package = if exit_code == 0
+            && matches!(payload.command, crate::types::request::Command::Compile)
+            && payload.options.include_bytecode
+        {
+            read_compiled_package(&workspace.path).ok()
+        } else {
+            None
+        };
+
+        Ok((exit_code, combined_output, compiled_package))
     }
+}
+
+fn read_compiled_package(workspace_path: &Path) -> io::Result<CompiledPackage> {
+    let move_toml = fs::read_to_string(workspace_path.join("Move.toml"))?;
+    let parsed: toml::Value = toml::from_str(&move_toml)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    let package_name = parsed
+        .get("package")
+        .and_then(|pkg| pkg.get("name"))
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Move.toml is missing package.name",
+            )
+        })?;
+
+    let build_dir = workspace_path.join("build").join(package_name);
+    let metadata_path = build_dir.join("package-metadata.bcs");
+    let metadata_bytes = fs::read(metadata_path)?;
+    let metadata_bcs = base64::engine::general_purpose::STANDARD.encode(metadata_bytes);
+
+    let modules_dir = build_dir.join("bytecode_modules");
+    let mut modules = Vec::new();
+    for entry in fs::read_dir(modules_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("mv") {
+            continue;
+        }
+        let name = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("module")
+            .to_string();
+        let bytes = fs::read(path)?;
+        let bytecode = base64::engine::general_purpose::STANDARD.encode(bytes);
+        modules.push(CompiledModule { name, bytecode });
+    }
+
+    Ok(CompiledPackage {
+        package_name: package_name.to_string(),
+        metadata_bcs,
+        modules,
+    })
 }

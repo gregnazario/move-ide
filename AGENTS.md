@@ -8,9 +8,9 @@
 
 ## Build, Test, and Development Commands
 - Backend dev server: `cd backend && cargo run` (starts API on `http://localhost:8080`).
-- Frontend dev server: `cd frontend && npm install && npm run dev` (UI on `http://localhost:3000`, proxies to backend).
-- Frontend build: `cd frontend && npm run build` (TypeScript build + Vite bundle).
-- Frontend lint: `cd frontend && npm run lint` (Biome).
+- Frontend dev server: `cd frontend && bun install && bun run dev` (UI on `http://localhost:3000`, proxies to backend).
+- Frontend build: `cd frontend && bun run build` (TypeScript build + Vite bundle).
+- Frontend lint: `cd frontend && bun run lint` (Biome).
 - Full stack via Docker: `docker-compose up --build` (frontend + backend).
 
 ## Coding Style & Naming Conventions
@@ -23,7 +23,7 @@
 ## Testing Guidelines
 - Backend unit tests live alongside modules (example: `backend/src/service/parser.rs`).
 - Run backend tests with `cd backend && cargo test`.
-- No dedicated frontend test runner is configured yet; prefer manual UI checks and `npm run lint`.
+- No dedicated frontend test runner is configured yet; prefer manual UI checks and `bun run lint`.
 - Playground test execution uses the Aptos CLI (`aptos move test`) during runtime, not as a CI test suite.
 
 ## Commit & Pull Request Guidelines

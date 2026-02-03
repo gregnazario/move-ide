@@ -8,9 +8,11 @@ A browser-based interactive playground for Aptos Move, inspired by the Rust Play
 - 🚀 **Real-time execution** via WebSocket streaming
 - 📁 **Multi-file support** (modules, scripts, packages)
 - 🔗 **Share snippets** via GitHub Gists
+- 📦 **Export workspace** to a ZIP file
 - 🧪 **Test support** with `aptos move test`
 - 📊 **Inline error markers** parsed from compiler output
 - 🔧 **Named addresses** configuration UI
+- 🔐 **AIP-62 wallet support** for devnet publish/run
 
 ## Project Structure
 
@@ -56,8 +58,8 @@ The backend runs on `http://localhost:8080`.
 
 ```bash
 cd frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 The frontend runs on `http://localhost:3000` and proxies API/WebSocket requests to the backend.
@@ -86,8 +88,8 @@ Frontend-only (Biome):
 
 ```bash
 cd frontend
-npm run format
-npm run lint
+bun run format
+bun run lint
 ```
 
 ## Configuration
@@ -100,6 +102,10 @@ npm run lint
 
 Execute Move code with real-time streaming output.
 Run commands require an entry function (`--function-id`) and will return a validation error if missing.
+
+### Devnet publish/run
+
+Use the in-app wallet menu to connect an AIP-62 wallet or create a local devnet test account (stored in localStorage). Publish/run transactions are submitted from the browser.
 
 ### REST Endpoints
 

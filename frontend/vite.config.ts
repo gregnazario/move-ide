@@ -3,6 +3,24 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [react()],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: (id) => {
+                    if (id.includes("@aptos-labs/ts-sdk")) {
+                        return "aptos-sdk";
+                    }
+                    if (id.includes("jszip")) {
+                        return "jszip";
+                    }
+                    if (id.includes("wallet-adapter")) {
+                        return "aptos-wallets";
+                    }
+                    return undefined;
+                },
+            },
+        },
+    },
     test: {
         environment: "jsdom",
         setupFiles: "./src/setupTests.ts",
