@@ -170,6 +170,20 @@ export function FileTree() {
     }, [showMenu]);
 
     useEffect(() => {
+        if (!confirmState) return;
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setConfirmState(null);
+            }
+            if (event.key === "Enter") {
+                confirmDelete();
+            }
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => document.removeEventListener("keydown", handleKey);
+    }, [confirmState]);
+
+    useEffect(() => {
         if (!editState) return;
         if (editInputRef.current) {
             editInputRef.current.focus();
@@ -729,8 +743,14 @@ export function FileTree() {
             </div>
 
             {confirmState && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
-                    <div className="w-80 bg-bg-secondary border border-border rounded shadow-xl p-4">
+                <div
+                    className="absolute inset-0 bg-black/40 flex items-center justify-center z-20"
+                    onMouseDown={() => setConfirmState(null)}
+                >
+                    <div
+                        className="w-80 bg-bg-secondary border border-border rounded shadow-xl p-4"
+                        onMouseDown={(event) => event.stopPropagation()}
+                    >
                         <div className="text-sm text-text-primary font-medium">
                             {confirmState.type === "file"
                                 ? "Delete file?"
