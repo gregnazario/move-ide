@@ -277,7 +277,7 @@ export function Header() {
     const canRunOnChain = canOnchain && Boolean(selectedFunction);
 
     return (
-        <header className="h-12 bg-bg-secondary border-b border-border flex items-center justify-between px-4">
+        <header className="min-h-12 bg-bg-secondary border-b border-border flex flex-wrap items-center gap-2 px-4 py-2 md:flex-nowrap md:justify-between md:py-0">
             {/* Left: Logo */}
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
