@@ -1,10 +1,10 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
     buildAuthCookie,
     getRequestOrigin,
     isOriginAllowed,
     issueToken,
 } from "../_lib/auth";
+import type { VercelRequest, VercelResponse } from "../_lib/types";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== "POST") {

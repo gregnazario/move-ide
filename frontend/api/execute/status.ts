@@ -1,6 +1,6 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { requireAuth } from "../_lib/auth";
 import { getRedis } from "../_lib/redis";
+import type { VercelRequest, VercelResponse } from "../_lib/types";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Content-Type", "application/json");
