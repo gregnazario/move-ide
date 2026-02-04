@@ -14,6 +14,7 @@
         "jose": "^5.2.4",
         "jszip": "^3.10.1",
         "lucide-react": "^0.312.0",
+        "monaco-vim": "^0.4.0",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-resizable-panels": "^2.0.0",
@@ -623,6 +624,8 @@
     "min-indent": ["min-indent@1.0.1", "", {}, "sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg=="],
 
     "monaco-editor": ["monaco-editor@0.55.1", "", { "dependencies": { "dompurify": "3.2.7", "marked": "14.0.0" } }, ""],
+
+    "monaco-vim": ["monaco-vim@0.4.4", "", { "peerDependencies": { "monaco-editor": "*" } }, "sha512-LNChAb//WEm/W+eyeHG/0+pdVEHotk2hLTN+M3sQZx5E8cAlSWSgqcxpcRuQnxDybSln7pfHF9i63HmbIQvrWw=="],
 
     "ms": ["ms@2.1.3", "", {}, ""],
 

@@ -1,5 +1,6 @@
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import { X } from "lucide-react";
+import { initVimMode } from "monaco-vim";
 import type { editor } from "monaco-editor";
 import { useEffect, useRef } from "react";
 import { moveLanguageConfig } from "../lib/moveLanguage";
@@ -16,7 +17,7 @@ const getEditorTheme = (currentTheme: Theme) =>
     currentTheme === "dark" ? "move-ide-dark" : "vs";
 
 export function EditorPane() {
-    const { theme } = useUiStore();
+    const { theme, keybindingMode } = useUiStore();
     const {
         files,
         activeFile,
@@ -28,6 +29,8 @@ export function EditorPane() {
     } = useWorkspaceStore();
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<Monaco | null>(null);
+    const vimModeRef = useRef<{ dispose: () => void } | null>(null);
+    const vimStatusRef = useRef<HTMLDivElement | null>(null);
 
     const activeFileContent = activeFile ? files.get(activeFile)?.content : "";
 
@@ -116,12 +119,54 @@ export function EditorPane() {
             // Trigger share
             document.dispatchEvent(new CustomEvent("playground:share"));
         });
+
+        if (keybindingMode === "vim") {
+            if (vimModeRef.current) {
+                vimModeRef.current.dispose();
+                vimModeRef.current = null;
+            }
+            if (vimStatusRef.current) {
+                vimModeRef.current = initVimMode(
+                    editor,
+                    vimStatusRef.current,
+                );
+            }
+        }
     };
 
     useEffect(() => {
         if (!monacoRef.current) return;
         monacoRef.current.editor.setTheme(getEditorTheme(theme));
     }, [theme]);
+
+    useEffect(() => {
+        if (!editorRef.current) return;
+        if (keybindingMode === "vim") {
+            if (!vimModeRef.current && vimStatusRef.current) {
+                vimModeRef.current = initVimMode(
+                    editorRef.current,
+                    vimStatusRef.current,
+                );
+            }
+            return;
+        }
+        if (vimModeRef.current) {
+            vimModeRef.current.dispose();
+            vimModeRef.current = null;
+        }
+        if (vimStatusRef.current) {
+            vimStatusRef.current.textContent = "";
+        }
+    }, [keybindingMode]);
+
+    useEffect(() => {
+        return () => {
+            if (vimModeRef.current) {
+                vimModeRef.current.dispose();
+                vimModeRef.current = null;
+            }
+        };
+    }, []);
 
     // Update error markers when errors change
     useEffect(() => {
@@ -250,6 +295,11 @@ export function EditorPane() {
                     </div>
                 )}
             </div>
+            {keybindingMode === "vim" && (
+                <div className="h-7 px-3 flex items-center bg-bg-secondary border-t border-border text-xs text-text-secondary">
+                    <div ref={vimStatusRef} />
+                </div>
+            )}
         </div>
     );
 }
