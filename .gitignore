@@ -31,7 +31,7 @@ npm-debug.log*
 *.tmp
 
 # Rust
-Cargo.lock
+# Cargo.lock is committed
 **/*.rs.bk
 
 # Testing
