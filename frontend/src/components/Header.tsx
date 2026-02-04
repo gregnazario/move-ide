@@ -43,6 +43,7 @@ export function Header() {
     const [showWalletMenu, setShowWalletMenu] = useState(false);
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
     const settingsMenuRef = useRef<HTMLDivElement | null>(null);
+    const walletMenuRef = useRef<HTMLDivElement | null>(null);
     const [devnetAccount, setDevnetAccount] =
         useState<DevnetAccountData | null>(null);
 
@@ -51,20 +52,29 @@ export function Header() {
     }, []);
 
     useEffect(() => {
-        if (!showSettingsMenu) return;
+        if (!showSettingsMenu && !showWalletMenu) return;
         const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
             if (
+                showSettingsMenu &&
                 settingsMenuRef.current &&
-                !settingsMenuRef.current.contains(event.target as Node)
+                !settingsMenuRef.current.contains(target)
             ) {
                 setShowSettingsMenu(false);
+            }
+            if (
+                showWalletMenu &&
+                walletMenuRef.current &&
+                !walletMenuRef.current.contains(target)
+            ) {
+                setShowWalletMenu(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, [showSettingsMenu]);
+    }, [showSettingsMenu, showWalletMenu]);
 
     const walletList = useMemo(
         () => wallets.filter((wallet) => wallet.readyState !== "NotDetected"),
@@ -350,7 +360,7 @@ export function Header() {
             {/* Center: Actions */}
             <div className="flex items-center gap-2">
                 {/* Run Button with Dropdown */}
-                <div className="relative">
+                <div className="relative" ref={walletMenuRef}>
                     <div className="flex">
                         <button
                             type="button"
