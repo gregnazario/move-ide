@@ -350,7 +350,7 @@ export function Header() {
             {/* Center: Actions */}
             <div className="flex items-center gap-2">
                 {/* Run Button with Dropdown */}
-                <div className="relative" ref={settingsMenuRef}>
+                <div className="relative">
                     <div className="flex">
                         <button
                             type="button"
@@ -464,7 +464,7 @@ export function Header() {
 
             {/* Right: Settings */}
             <div className="flex items-center gap-3">
-                <div className="relative">
+                <div className="relative" ref={settingsMenuRef}>
                     <button
                         type="button"
                         onClick={() => setShowWalletMenu((show) => !show)}
