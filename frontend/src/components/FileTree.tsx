@@ -35,13 +35,23 @@ const getBaseName = (path: string) =>
 const isDescendant = (parent: string, child: string) =>
     child === parent || child.startsWith(`${parent}/`);
 
-const sortNodes = (nodes: TreeNode[]) =>
-    nodes.sort((a, b) => {
-        if (a.type !== b.type) {
-            return a.type === "folder" ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-    });
+const sortNodes = (
+    nodes: TreeNode[],
+    parentPath: string,
+    getOrderedFileNames: (dir: string, fileNames: string[]) => string[],
+) => {
+    const folders = nodes
+        .filter((node) => node.type === "folder")
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const files = nodes.filter((node) => node.type === "file");
+    const fileNames = files.map((node) => node.name);
+    const orderedNames = getOrderedFileNames(parentPath, fileNames);
+    const fileMap = new Map(files.map((node) => [node.name, node]));
+    const orderedFiles = orderedNames
+        .map((name) => fileMap.get(name))
+        .filter((node): node is TreeNode => Boolean(node));
+    return [...folders, ...orderedFiles];
+};
 
 export function FileTree() {
     const {
@@ -60,6 +70,9 @@ export function FileTree() {
     const [showMenu, setShowMenu] = useState(false);
     const [dragOverPath, setDragOverPath] = useState<string | null>(null);
     const [virtualFolders, setVirtualFolders] = useState<string[]>([]);
+    const [fileOrderByDir, setFileOrderByDir] = useState<
+        Record<string, string[]>
+    >({});
     const [confirmState, setConfirmState] = useState<
         { type: "file"; path: string } | { type: "folder"; path: string } | null
     >(null);
@@ -67,6 +80,18 @@ export function FileTree() {
     const editInputRef = useRef<HTMLInputElement | null>(null);
 
     const filePaths = useMemo(() => Array.from(files.keys()), [files]);
+
+    const getParentDir = (path: string) =>
+        path.split("/").slice(0, -1).join("/");
+
+    const getOrderedFileNames = (dir: string, fileNames: string[]) => {
+        const stored = fileOrderByDir[dir] ?? [];
+        const kept = stored.filter((name) => fileNames.includes(name));
+        const remaining = fileNames
+            .filter((name) => !stored.includes(name))
+            .sort((a, b) => a.localeCompare(b));
+        return [...kept, ...remaining];
+    };
 
     const { rootNode, folderSet } = useMemo(() => {
         const root: TreeNode = {
@@ -599,7 +624,8 @@ export function FileTree() {
                         </div>
                     )}
                 </div>
-                {node.children && renderChildren(node.children, depth + 1)}
+                {node.children &&
+                    renderChildren(node.children, depth + 1, node.path)}
             </div>
         );
     };
@@ -609,6 +635,7 @@ export function FileTree() {
             editState?.mode === "rename-file" && editState.path === node.path;
         const paddingLeft = 12 + depth * 16;
         const isProtected = isMoveToml(node.path);
+        const parentDir = getParentDir(node.path);
 
         return (
             <div
@@ -619,6 +646,45 @@ export function FileTree() {
                         : "text-text-secondary hover:bg-bg-tertiary"
                 }`}
                 style={{ paddingLeft }}
+                onDragOver={(event) => {
+                    const payload = parseDragData(event);
+                    if (!payload || payload.type !== "file") {
+                        return;
+                    }
+                    if (getParentDir(payload.path) !== parentDir) {
+                        return;
+                    }
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                    const payload = parseDragData(event);
+                    if (!payload || payload.type !== "file") {
+                        return;
+                    }
+                    if (getParentDir(payload.path) !== parentDir) {
+                        return;
+                    }
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (payload.path === node.path) return;
+                    const fileNames = filePaths
+                        .filter((path) => getParentDir(path) === parentDir)
+                        .map(getBaseName);
+                    const ordered = getOrderedFileNames(parentDir, fileNames);
+                    const fromName = getBaseName(payload.path);
+                    const toName = getBaseName(node.path);
+                    const fromIndex = ordered.indexOf(fromName);
+                    const toIndex = ordered.indexOf(toName);
+                    if (fromIndex === -1 || toIndex === -1) return;
+                    const next = [...ordered];
+                    next.splice(fromIndex, 1);
+                    next.splice(toIndex, 0, fromName);
+                    setFileOrderByDir((prev) => ({
+                        ...prev,
+                        [parentDir]: next,
+                    }));
+                }}
             >
                 <button
                     type="button"
@@ -679,8 +745,16 @@ export function FileTree() {
         );
     };
 
-    const renderChildren = (children: Map<string, TreeNode>, depth: number) => {
-        const nodes = sortNodes(Array.from(children.values()));
+    const renderChildren = (
+        children: Map<string, TreeNode>,
+        depth: number,
+        parentPath: string,
+    ) => {
+        const nodes = sortNodes(
+            Array.from(children.values()),
+            parentPath,
+            getOrderedFileNames,
+        );
         return nodes.map((node) =>
             node.type === "folder"
                 ? renderFolderRow(node, depth)
@@ -739,7 +813,8 @@ export function FileTree() {
                 onDrop={(event) => handleDrop(event, ROOT_PATH)}
             >
                 {renderInputRow()}
-                {rootNode.children && renderChildren(rootNode.children, 0)}
+                {rootNode.children &&
+                    renderChildren(rootNode.children, 0, ROOT_PATH)}
             </div>
 
             {confirmState && (

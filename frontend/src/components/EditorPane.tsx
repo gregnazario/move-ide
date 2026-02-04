@@ -24,6 +24,7 @@ export function EditorPane() {
         openTabs,
         setActiveFile,
         closeTab,
+        moveTab,
         updateFileContent,
         errors,
     } = useWorkspaceStore();
@@ -229,7 +230,23 @@ export function EditorPane() {
                                 isActive
                                     ? "bg-bg-primary text-text-primary border-b-2 border-b-text-link"
                                     : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
-                            }`}
+                            } cursor-grab active:cursor-grabbing`}
+                            draggable
+                            onDragStart={(event) => {
+                                event.dataTransfer.setData("text/plain", tab);
+                                event.dataTransfer.effectAllowed = "move";
+                            }}
+                            onDragOver={(event) => {
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = "move";
+                            }}
+                            onDrop={(event) => {
+                                event.preventDefault();
+                                const fromTab =
+                                    event.dataTransfer.getData("text/plain");
+                                if (!fromTab) return;
+                                moveTab(fromTab, tab);
+                            }}
                         >
                             <button
                                 type="button"

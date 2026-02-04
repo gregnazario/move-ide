@@ -66,6 +66,7 @@ interface WorkspaceState {
     setActiveFile: (path: string | null) => void;
     openTab: (path: string) => void;
     closeTab: (path: string) => void;
+    moveTab: (fromPath: string, toPath: string) => void;
 
     setNamedAddresses: (addresses: Record<string, string>) => void;
     setSelectedFunction: (func: string | null) => void;
@@ -251,6 +252,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
                     state.activeFile =
                         state.openTabs[Math.max(0, idx - 1)] ?? null;
                 }
+            }),
+        moveTab: (fromPath, toPath) =>
+            set((state) => {
+                const fromIndex = state.openTabs.indexOf(fromPath);
+                const toIndex = state.openTabs.indexOf(toPath);
+                if (fromIndex === -1 || toIndex === -1) return;
+                if (fromIndex === toIndex) return;
+                const nextTabs = [...state.openTabs];
+                const [moved] = nextTabs.splice(fromIndex, 1);
+                nextTabs.splice(toIndex, 0, moved);
+                state.openTabs = nextTabs;
             }),
 
         setNamedAddresses: (addresses) =>
