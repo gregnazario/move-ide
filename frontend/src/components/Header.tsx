@@ -27,7 +27,8 @@ import { useUiStore, useWorkspaceStore } from "../store";
 
 export function Header() {
     const { isExecuting, selectedFunction, wsStatus } = useWorkspaceStore();
-    const { themeMode, setThemeMode } = useUiStore();
+    const { themeMode, setThemeMode, keybindingMode, setKeybindingMode } =
+        useUiStore();
     const { execute, executeWithResult, mode } = useExecution();
     const {
         connected,
@@ -651,6 +652,41 @@ export function Header() {
                                     <Monitor size={14} />
                                     System
                                 </button>
+                            </div>
+                            <div className="pt-2 border-t border-border">
+                                <div className="text-text-secondary uppercase tracking-wide">
+                                    Keybindings
+                                </div>
+                                <div className="space-y-1 mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setKeybindingMode("default");
+                                            setShowSettingsMenu(false);
+                                        }}
+                                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                                            keybindingMode === "default"
+                                                ? "bg-bg-secondary text-text-primary"
+                                                : "hover:bg-bg-secondary text-text-secondary"
+                                        }`}
+                                    >
+                                        Default
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setKeybindingMode("vim");
+                                            setShowSettingsMenu(false);
+                                        }}
+                                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                                            keybindingMode === "vim"
+                                                ? "bg-bg-secondary text-text-primary"
+                                                : "hover:bg-bg-secondary text-text-secondary"
+                                        }`}
+                                    >
+                                        Vim
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
