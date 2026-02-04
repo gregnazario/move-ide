@@ -464,7 +464,7 @@ export function Header() {
 
             {/* Right: Settings */}
             <div className="flex items-center gap-3">
-                <div className="relative" ref={settingsMenuRef}>
+                <div className="relative">
                     <button
                         type="button"
                         onClick={() => setShowWalletMenu((show) => !show)}
@@ -591,7 +591,7 @@ export function Header() {
                     )}
                 </div>
 
-                <div className="relative">
+                <div className="relative" ref={settingsMenuRef}>
                     <button
                         type="button"
                         onClick={() => setShowSettingsMenu((show) => !show)}
