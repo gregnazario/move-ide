@@ -206,17 +206,22 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             // Macro invocations: assert!(...), abort!(...)
             [/[a-z_$][\w$]*!/, "support.function"],
 
-            // Module-qualified paths: std::vector, 0x1::coin::CoinStore, Self::func
+            // ---- Qualified paths (state-based) ----
+            // Hex-address start:  0x1::module::Item
             [
-                /(?:0x[0-9a-fA-F_]+|[a-zA-Z_]\w*)(?:::[a-zA-Z_]\w*)+/,
-                "type.identifier",
+                /0[xX][0-9a-fA-F_]+(?=\s*::)/,
+                { token: "number.hex", next: "@qualifiedPath" },
+            ],
+            // Named start:  std::vector,  Self::func,  aptos_framework::coin
+            [
+                /[a-zA-Z_]\w*(?=\s*::)/,
+                { token: "type.identifier", next: "@qualifiedPath" },
             ],
 
             // Function / method invocations: name(  or  name<T>(
-            // Checked before the general identifier rule so we can give calls
-            // their own token while still falling through for keywords.
+            // Supports one level of nested generics: name<Outer<Inner>>(
             [
-                /[a-z_$][\w$]*(?=\s*(?:<[^>]*>)?\s*\()/,
+                /[a-z_$][\w$]*(?=\s*(?:<(?:[^<>]|<[^>]*>)*>)?\s*\()/,
                 {
                     cases: {
                         self: "variable.predefined",
@@ -314,6 +319,26 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/'[^\\']'/, "string"],
             [/(')(@escapes)(')/, ["string", "string.escape", "string"]],
             [/'/, "string.invalid"],
+        ],
+
+        // ---- Qualified path segments after the initial identifier ----
+        // Entered when we see `name::` — processes each :: segment and
+        // classifies the *terminal* segment as a function invocation when
+        // it is followed by optional generics + `(`.
+        qualifiedPath: [
+            [/\s+/, "white"],
+            [/::/, "delimiter"],
+            // Intermediate segment (more :: ahead)
+            [/[a-zA-Z_]\w*(?=\s*::)/, "type.identifier"],
+            // Terminal segment that is a function / method call
+            [
+                /[a-zA-Z_]\w*(?=\s*(?:<(?:[^<>]|<[^>]*>)*>)?\s*\()/,
+                { token: "entity.name.function.invoke", next: "@pop" },
+            ],
+            // Terminal segment — plain type / module reference
+            [/[a-zA-Z_]\w*/, { token: "type.identifier", next: "@pop" }],
+            // Anything else (e.g. `{` in `use a::b::{…}`) — re-process in root
+            [/./, { token: "@rematch", next: "@pop" }],
         ],
 
         // ---- Attribute with nested parens ----

@@ -19,12 +19,9 @@ describe("moveLanguageConfig", () => {
     it("includes spec language keywords", () => {
         const keywords = new Set(moveLanguageConfig.keywords ?? []);
 
-        // spec declaration & block keywords
         expect(keywords.has("spec")).toBe(true);
         expect(keywords.has("schema")).toBe(true);
         expect(keywords.has("invariant")).toBe(true);
-
-        // spec condition keywords
         expect(keywords.has("pragma")).toBe(true);
         expect(keywords.has("ensures")).toBe(true);
         expect(keywords.has("requires")).toBe(true);
@@ -32,8 +29,6 @@ describe("moveLanguageConfig", () => {
         expect(keywords.has("aborts_with")).toBe(true);
         expect(keywords.has("modifies")).toBe(true);
         expect(keywords.has("emits")).toBe(true);
-
-        // spec quantifiers & helpers
         expect(keywords.has("forall")).toBe(true);
         expect(keywords.has("exists")).toBe(true);
         expect(keywords.has("choose")).toBe(true);
@@ -100,30 +95,97 @@ describe("moveLanguageConfig", () => {
         expect(hasDocCommentRule).toBe(true);
     });
 
-    it("has module-qualified path rule in root", () => {
+    it("has qualifiedPath state for module-qualified paths", () => {
         const states = moveLanguageConfig.tokenizer as Record<
             string,
             unknown[]
         >;
-        const root = states.root;
-        // Should have a rule whose regex matches addr::name patterns
-        const hasPathRule = root.some(
-            (rule: unknown) =>
-                Array.isArray(rule) &&
-                rule[0] instanceof RegExp &&
-                rule[0].test("std::vector") &&
-                rule[0].test("0x1::coin::Coin"),
-        );
-        expect(hasPathRule).toBe(true);
+        expect(states.qualifiedPath).toBeDefined();
+
+        // qualifiedPath should contain a rule that produces entity.name.function.invoke
+        // for terminal segments followed by (
+        const qp = states.qualifiedPath;
+        const hasFnInvokeTerminal = qp.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            return (
+                (action as Record<string, unknown>).token ===
+                "entity.name.function.invoke"
+            );
+        });
+        expect(hasFnInvokeTerminal).toBe(true);
+
+        // qualifiedPath should also contain a type.identifier terminal rule
+        const hasTypeTerminal = qp.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            return (
+                (action as Record<string, unknown>).token === "type.identifier"
+            );
+        });
+        expect(hasTypeTerminal).toBe(true);
     });
 
-    it("has function invocation rule in root", () => {
+    it("has path-start rules in root that enter qualifiedPath state", () => {
         const states = moveLanguageConfig.tokenizer as Record<
             string,
             unknown[]
         >;
         const root = states.root;
-        // Should have a rule with cases including entity.name.function.invoke
+
+        // Should have a rule for hex address path start (0x1::)
+        const hasHexPathStart = root.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            const a = action as Record<string, unknown>;
+            return a.token === "number.hex" && a.next === "@qualifiedPath";
+        });
+        expect(hasHexPathStart).toBe(true);
+
+        // Should have a rule for named path start (std::)
+        const hasNamedPathStart = root.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            const a = action as Record<string, unknown>;
+            return a.token === "type.identifier" && a.next === "@qualifiedPath";
+        });
+        expect(hasNamedPathStart).toBe(true);
+    });
+
+    it("hex path-start regex accepts both 0x and 0X prefixes", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const root = states.root;
+
+        // Find the hex path-start rule
+        const hexPathRule = root.find((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            const a = action as Record<string, unknown>;
+            return a.token === "number.hex" && a.next === "@qualifiedPath";
+        });
+        expect(hexPathRule).toBeDefined();
+        const regex = (hexPathRule as unknown[])[0] as RegExp;
+        // The regex includes a (?=\s*::) lookahead, so test strings must
+        // include :: to satisfy it.
+        expect(regex.test("0x1::")).toBe(true);
+        // 0X should also match (case-insensitive prefix)
+        expect(regex.test("0X1::")).toBe(true);
+    });
+
+    it("has function invocation rule in root with nested-generic-aware lookahead", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const root = states.root;
         const hasFnInvokeRule = root.some((rule: unknown) => {
             if (!Array.isArray(rule) || rule.length < 2) return false;
             const action = rule[1];
@@ -144,7 +206,6 @@ describe("moveLanguageConfig", () => {
             unknown[]
         >;
         const abilityList = states.abilityList;
-        // Should have a delimiter rule that matches both , and +
         const hasPlusSeparator = abilityList.some(
             (rule: unknown) =>
                 Array.isArray(rule) &&
