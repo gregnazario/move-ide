@@ -3,8 +3,8 @@ import {
     getRequestOrigin,
     isOriginAllowed,
     issueToken,
-} from "../_lib/auth";
-import type { VercelRequest, VercelResponse } from "../_lib/types";
+} from "../_lib/auth.js";
+import type { VercelRequest, VercelResponse } from "../_lib/types.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== "POST") {

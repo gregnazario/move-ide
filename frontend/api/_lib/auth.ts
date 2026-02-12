@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
-import type { VercelRequest, VercelResponse } from "./types";
+import type { VercelRequest, VercelResponse } from "./types.js";
 
 const ISSUER = "move-playground";
 const AUDIENCE = "move-playground-backend";

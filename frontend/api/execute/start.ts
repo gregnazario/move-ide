@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { requireAuth } from "../_lib/auth";
-import { type ExecutePayload, runExecution } from "../_lib/exec";
-import { getRedis } from "../_lib/redis";
-import type { VercelRequest, VercelResponse } from "../_lib/types";
+import { requireAuth } from "../_lib/auth.js";
+import { type ExecutePayload, runExecution } from "../_lib/exec.js";
+import { getRedis } from "../_lib/redis.js";
+import type { VercelRequest, VercelResponse } from "../_lib/types.js";
 
 const TTL_SECONDS = 60 * 60;
 

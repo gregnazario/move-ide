@@ -1,6 +1,6 @@
-import { requireAuth } from "../_lib/auth";
-import { getRedis } from "../_lib/redis";
-import type { VercelRequest, VercelResponse } from "../_lib/types";
+import { requireAuth } from "../_lib/auth.js";
+import { getRedis } from "../_lib/redis.js";
+import type { VercelRequest, VercelResponse } from "../_lib/types.js";
 
 const POLL_INTERVAL_MS = 1000;
 const MAX_STREAM_MS = 25_000;

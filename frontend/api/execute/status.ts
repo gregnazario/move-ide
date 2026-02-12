@@ -1,6 +1,6 @@
-import { requireAuth } from "../_lib/auth";
-import { getRedis } from "../_lib/redis";
-import type { VercelRequest, VercelResponse } from "../_lib/types";
+import { requireAuth } from "../_lib/auth.js";
+import { getRedis } from "../_lib/redis.js";
+import type { VercelRequest, VercelResponse } from "../_lib/types.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Content-Type", "application/json");
