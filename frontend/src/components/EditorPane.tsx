@@ -1,7 +1,7 @@
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import { X } from "lucide-react";
-import { initVimMode } from "monaco-vim";
 import type { editor } from "monaco-editor";
+import { initVimMode } from "monaco-vim";
 import { useEffect, useRef } from "react";
 import { moveLanguageConfig } from "../lib/moveLanguage";
 import {
@@ -127,10 +127,7 @@ export function EditorPane() {
                 vimModeRef.current = null;
             }
             if (vimStatusRef.current) {
-                vimModeRef.current = initVimMode(
-                    editor,
-                    vimStatusRef.current,
-                );
+                vimModeRef.current = initVimMode(editor, vimStatusRef.current);
             }
         }
     };

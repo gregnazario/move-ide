@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { BACKEND_URL } from "../lib/config";
 import { useWorkspaceStore } from "../store";
 import type { DonePayload, ServerMessage } from "../types/execute";
 
@@ -27,8 +28,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
         setWsStatus("connecting");
 
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws/execute`;
+        let wsUrl: string;
+        if (BACKEND_URL) {
+            const url = new URL(BACKEND_URL);
+            const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+            wsUrl = `${protocol}//${url.host}/ws/execute`;
+        } else {
+            const protocol =
+                window.location.protocol === "https:" ? "wss:" : "ws:";
+            wsUrl = `${protocol}//${window.location.host}/ws/execute`;
+        }
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
