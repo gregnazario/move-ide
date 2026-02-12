@@ -7,48 +7,73 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
     tokenPostfix: ".move",
 
     keywords: [
-        "abort",
-        "acquires",
-        "as",
-        "assert",
-        "break",
-        "const",
-        "continue",
-        "copy",
-        "drop",
-        "else",
-        "entry",
-        "enum",
-        "for",
-        "friend",
-        "fun",
-        "has",
-        "if",
-        "in",
-        "inline",
-        "invariant",
-        "is",
-        "key",
-        "let",
-        "loop",
-        "macro",
-        "match",
+        // Declarations
         "module",
-        "move",
-        "mut",
-        "native",
-        "package",
-        "phantom",
-        "public",
-        "receiver",
-        "return",
-        "schema",
         "script",
-        "spec",
-        "store",
         "struct",
+        "enum",
+        "fun",
+        "const",
         "use",
+        "spec",
+        "schema",
+        // Visibility & modifiers
+        "public",
+        "entry",
+        "native",
+        "inline",
+        "friend",
+        "package",
+        // Control flow
+        "if",
+        "else",
         "while",
+        "loop",
+        "for",
+        "in",
+        "match",
+        "break",
+        "continue",
+        "return",
+        "abort",
+        // Variable & ownership
+        "let",
+        "mut",
+        "move",
+        "copy",
+        // Abilities clause
+        "has",
+        // Resource annotation
+        "acquires",
+        // Import aliasing
+        "as",
+        // Phantom type parameter
+        "phantom",
+        // Enum variant test (Move 2.0+)
+        "is",
+        // Move 2.x additions
+        "macro",
+        "receiver",
+        // Spec language keywords
+        "pragma",
+        "invariant",
+        "ensures",
+        "requires",
+        "aborts_if",
+        "aborts_with",
+        "include",
+        "assume",
+        "assert",
+        "modifies",
+        "emits",
+        "apply",
+        "axiom",
+        "forall",
+        "exists",
+        "choose",
+        "old",
+        "global",
+        "with",
     ],
 
     abilities: ["copy", "drop", "key", "store"],
@@ -77,29 +102,31 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
         "MIN_I256",
     ],
 
+    // Global storage operators (highlighted as builtins when called)
     builtinFunctions: [
-        "assert",
         "borrow_global",
         "borrow_global_mut",
-        "exists",
         "move_from",
         "move_to",
         "freeze",
     ],
 
     typeKeywords: [
+        // Unsigned integers
         "u8",
         "u16",
         "u32",
         "u64",
         "u128",
         "u256",
+        // Signed integers (Move 2.3+)
         "i8",
         "i16",
         "i32",
         "i64",
         "i128",
         "i256",
+        // Other primitives
         "bool",
         "address",
         "signer",
@@ -154,7 +181,8 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
 
     tokenizer: {
         root: [
-            // Attributes/annotations – handle nested parens e.g. #[expected_failure(abort_code = 1)]
+            // Attributes/annotations – handle nested parens
+            // e.g. #[test], #[expected_failure(abort_code = 1)]
             [/#\[/, { token: "annotation", next: "@attribute" }],
 
             // Loop labels  e.g. 'outer
@@ -166,7 +194,7 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
                 { token: "operator", next: "@lambdaParams" },
             ],
 
-            // Builtin constants
+            // Builtin constants (ALL_CAPS)
             [/\b__COMPILE_FOR_TESTING__\b/, "constant"],
             [/\bMAX_[UI]\d+\b/, "constant"],
             [/\bMIN_I\d+\b/, "constant"],
@@ -177,6 +205,29 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
 
             // Macro invocations: assert!(...), abort!(...)
             [/[a-z_$][\w$]*!/, "support.function"],
+
+            // Module-qualified paths: std::vector, 0x1::coin::CoinStore, Self::func
+            [
+                /(?:0x[0-9a-fA-F_]+|[a-zA-Z_]\w*)(?:::[a-zA-Z_]\w*)+/,
+                "type.identifier",
+            ],
+
+            // Function / method invocations: name(  or  name<T>(
+            // Checked before the general identifier rule so we can give calls
+            // their own token while still falling through for keywords.
+            [
+                /[a-z_$][\w$]*(?=\s*(?:<[^>]*>)?\s*\()/,
+                {
+                    cases: {
+                        self: "variable.predefined",
+                        "@builtinFunctions": "support.function",
+                        "@typeKeywords": "type",
+                        "@literals": "constant",
+                        "@keywords": "keyword",
+                        "@default": "entity.name.function.invoke",
+                    },
+                },
+            ],
 
             // Identifiers and keywords – specific keywords trigger sub-states
             [
@@ -303,9 +354,11 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
         ],
 
         // ---- After has keyword – highlight abilities ----
+        // Handles both comma-separated (struct has copy, drop)
+        // and plus-separated (|u64| u64 has drop + copy) forms.
         abilityList: [
             [/[ \t]+/, "white"],
-            [/,/, "delimiter"],
+            [/[,+]/, "delimiter"],
             [
                 /[a-z_]\w*/,
                 {

@@ -16,6 +16,36 @@ describe("moveLanguageConfig", () => {
         expect(types.has("i64")).toBe(true);
     });
 
+    it("includes spec language keywords", () => {
+        const keywords = new Set(moveLanguageConfig.keywords ?? []);
+
+        // spec declaration & block keywords
+        expect(keywords.has("spec")).toBe(true);
+        expect(keywords.has("schema")).toBe(true);
+        expect(keywords.has("invariant")).toBe(true);
+
+        // spec condition keywords
+        expect(keywords.has("pragma")).toBe(true);
+        expect(keywords.has("ensures")).toBe(true);
+        expect(keywords.has("requires")).toBe(true);
+        expect(keywords.has("aborts_if")).toBe(true);
+        expect(keywords.has("aborts_with")).toBe(true);
+        expect(keywords.has("modifies")).toBe(true);
+        expect(keywords.has("emits")).toBe(true);
+
+        // spec quantifiers & helpers
+        expect(keywords.has("forall")).toBe(true);
+        expect(keywords.has("exists")).toBe(true);
+        expect(keywords.has("choose")).toBe(true);
+        expect(keywords.has("global")).toBe(true);
+        expect(keywords.has("old")).toBe(true);
+        expect(keywords.has("include")).toBe(true);
+        expect(keywords.has("assume")).toBe(true);
+        expect(keywords.has("apply")).toBe(true);
+        expect(keywords.has("axiom")).toBe(true);
+        expect(keywords.has("with")).toBe(true);
+    });
+
     it("includes abilities array", () => {
         const abilities = new Set(moveLanguageConfig.abilities ?? []);
         expect(abilities.has("copy")).toBe(true);
@@ -24,15 +54,15 @@ describe("moveLanguageConfig", () => {
         expect(abilities.has("store")).toBe(true);
     });
 
-    it("includes builtin functions array", () => {
+    it("includes global storage builtins in builtinFunctions", () => {
         const builtins = new Set(moveLanguageConfig.builtinFunctions ?? []);
-        expect(builtins.has("assert")).toBe(true);
         expect(builtins.has("borrow_global")).toBe(true);
         expect(builtins.has("borrow_global_mut")).toBe(true);
-        expect(builtins.has("exists")).toBe(true);
         expect(builtins.has("move_from")).toBe(true);
         expect(builtins.has("move_to")).toBe(true);
         expect(builtins.has("freeze")).toBe(true);
+        // assert is a keyword, assert! is handled by the macro rule
+        expect(builtins.has("assert")).toBe(false);
     });
 
     it("detects lambda parameter starts without matching logical or", () => {
@@ -64,10 +94,64 @@ describe("moveLanguageConfig", () => {
             unknown[]
         >;
         const whitespace = states.whitespace;
-        // The whitespace state should contain a rule that tokens as "comment.doc"
         const hasDocCommentRule = whitespace.some(
             (rule: unknown) => Array.isArray(rule) && rule[1] === "comment.doc",
         );
         expect(hasDocCommentRule).toBe(true);
+    });
+
+    it("has module-qualified path rule in root", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const root = states.root;
+        // Should have a rule whose regex matches addr::name patterns
+        const hasPathRule = root.some(
+            (rule: unknown) =>
+                Array.isArray(rule) &&
+                rule[0] instanceof RegExp &&
+                rule[0].test("std::vector") &&
+                rule[0].test("0x1::coin::Coin"),
+        );
+        expect(hasPathRule).toBe(true);
+    });
+
+    it("has function invocation rule in root", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const root = states.root;
+        // Should have a rule with cases including entity.name.function.invoke
+        const hasFnInvokeRule = root.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action !== "object" || action === null) return false;
+            const cases = (action as Record<string, unknown>).cases;
+            if (typeof cases !== "object" || cases === null) return false;
+            return (
+                (cases as Record<string, unknown>)["@default"] ===
+                "entity.name.function.invoke"
+            );
+        });
+        expect(hasFnInvokeRule).toBe(true);
+    });
+
+    it("abilityList state accepts both comma and plus separators", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const abilityList = states.abilityList;
+        // Should have a delimiter rule that matches both , and +
+        const hasPlusSeparator = abilityList.some(
+            (rule: unknown) =>
+                Array.isArray(rule) &&
+                rule[0] instanceof RegExp &&
+                rule[0].test("+") &&
+                rule[0].test(","),
+        );
+        expect(hasPlusSeparator).toBe(true);
     });
 });

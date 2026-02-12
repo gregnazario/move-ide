@@ -63,7 +63,12 @@ export function EditorPane() {
                         foreground: "7ee787",
                         fontStyle: "bold",
                     },
-                    // Macro invocations (assert!, …)
+                    // Function / method invocations
+                    {
+                        token: "entity.name.function.invoke",
+                        foreground: "d2a8ff",
+                    },
+                    // Macro invocations & global storage builtins
                     { token: "support.function", foreground: "d2a8ff" },
                     // Ability names after `has` (copy, drop, store, key)
                     {
@@ -129,6 +134,10 @@ export function EditorPane() {
                         token: "entity.name.type",
                         foreground: "116329",
                         fontStyle: "bold",
+                    },
+                    {
+                        token: "entity.name.function.invoke",
+                        foreground: "8250df",
                     },
                     { token: "support.function", foreground: "8250df" },
                     {
