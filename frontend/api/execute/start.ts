@@ -131,9 +131,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await redis.expire(statusKey, TTL_SECONDS);
     await redis.expire(eventsKey, TTL_SECONDS);
 
+    await runAndPersistExecution(payload, executionId);
+
     res.statusCode = 200;
     res.end(JSON.stringify({ execution_id: executionId }));
-
-    // Continue execution after the response is sent so callers can start polling immediately.
-    void runAndPersistExecution(payload, executionId);
 }

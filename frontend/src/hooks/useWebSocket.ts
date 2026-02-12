@@ -28,16 +28,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
         setWsStatus("connecting");
 
-        let wsUrl: string;
+        let baseUrl: URL;
         if (BACKEND_URL) {
-            const url = new URL(BACKEND_URL);
-            const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-            wsUrl = `${protocol}//${url.host}/ws/execute`;
+            try {
+                baseUrl = new URL(BACKEND_URL);
+            } catch (e) {
+                console.error(
+                    "Invalid BACKEND_URL, falling back to same-origin for WebSocket:",
+                    e,
+                );
+                baseUrl = new URL(window.location.origin);
+            }
         } else {
-            const protocol =
-                window.location.protocol === "https:" ? "wss:" : "ws:";
-            wsUrl = `${protocol}//${window.location.host}/ws/execute`;
+            baseUrl = new URL(window.location.origin);
         }
+
+        const wsProtocol =
+            baseUrl.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${baseUrl.host}/ws/execute`;
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
