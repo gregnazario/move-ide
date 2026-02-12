@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
 
   backend:
+    image: localhost/move-ide_backend
     build: ./backend
     environment:
       - PLAYGROUND_HOST=0.0.0.0

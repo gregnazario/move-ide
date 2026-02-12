@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     git \
     curl \
+    jq \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Aptos CLI
