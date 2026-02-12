@@ -1,7 +1,7 @@
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import { X } from "lucide-react";
-import { initVimMode } from "monaco-vim";
 import type { editor } from "monaco-editor";
+import { initVimMode } from "monaco-vim";
 import { useEffect, useRef } from "react";
 import { moveLanguageConfig } from "../lib/moveLanguage";
 import {
@@ -14,7 +14,7 @@ let hasRegisteredLanguages = false;
 let hasDefinedTheme = false;
 
 const getEditorTheme = (currentTheme: Theme) =>
-    currentTheme === "dark" ? "move-ide-dark" : "vs";
+    currentTheme === "dark" ? "move-ide-dark" : "move-ide-light";
 
 export function EditorPane() {
     const { theme, keybindingMode } = useUiStore();
@@ -45,21 +45,125 @@ export function EditorPane() {
                 base: "vs-dark",
                 inherit: true,
                 rules: [
+                    // Keywords: control flow, declarations
                     { token: "keyword", foreground: "ff7b72" },
+                    // Primitive types (u64, bool, address, …)
                     { token: "type", foreground: "7ee787" },
+                    // PascalCase type references
                     { token: "type.identifier", foreground: "7ee787" },
+                    // Function names after `fun`
+                    {
+                        token: "entity.name.function",
+                        foreground: "d2a8ff",
+                        fontStyle: "bold",
+                    },
+                    // Struct / enum names after `struct` / `enum`
+                    {
+                        token: "entity.name.type",
+                        foreground: "7ee787",
+                        fontStyle: "bold",
+                    },
+                    // Macro invocations (assert!, …)
+                    { token: "support.function", foreground: "d2a8ff" },
+                    // Ability names after `has` (copy, drop, store, key)
+                    {
+                        token: "support.type",
+                        foreground: "7ee787",
+                        fontStyle: "italic",
+                    },
+                    // Numeric literals
                     { token: "number", foreground: "79c0ff" },
+                    { token: "number.hex", foreground: "79c0ff" },
+                    // Strings
                     { token: "string", foreground: "a5d6ff" },
+                    { token: "string.quote", foreground: "a5d6ff" },
+                    { token: "string.escape", foreground: "79c0ff" },
+                    // Comments
                     { token: "comment", foreground: "8b949e" },
+                    // Doc comments (///)
+                    {
+                        token: "comment.doc",
+                        foreground: "8b949e",
+                        fontStyle: "italic",
+                    },
+                    // Attributes (#[…])
                     { token: "annotation", foreground: "d2a8ff" },
+                    // Constants (MAX_U64, true/false, @named_addr)
                     { token: "constant", foreground: "ffa657" },
+                    // Lambda / closure parameters
                     { token: "variable.parameter", foreground: "e3b341" },
+                    // self keyword
+                    {
+                        token: "variable.predefined",
+                        foreground: "ffa657",
+                        fontStyle: "italic",
+                    },
+                    // Loop labels ('outer)
+                    { token: "tag", foreground: "7ee787" },
+                    // Delimiters (;  ,  .)
+                    { token: "delimiter", foreground: "8b949e" },
+                    // Operators (::  +  ==  …)
+                    { token: "operator", foreground: "ff7b72" },
                 ],
                 colors: {
                     "editor.foreground": "#e6edf3",
                     "editor.background": "#0d1117",
                     "editorLineNumber.foreground": "#30363d",
                     "editorLineNumber.activeForeground": "#8b949e",
+                },
+            });
+
+            monaco.editor.defineTheme("move-ide-light", {
+                base: "vs",
+                inherit: true,
+                rules: [
+                    { token: "keyword", foreground: "cf222e" },
+                    { token: "type", foreground: "116329" },
+                    { token: "type.identifier", foreground: "116329" },
+                    {
+                        token: "entity.name.function",
+                        foreground: "8250df",
+                        fontStyle: "bold",
+                    },
+                    {
+                        token: "entity.name.type",
+                        foreground: "116329",
+                        fontStyle: "bold",
+                    },
+                    { token: "support.function", foreground: "8250df" },
+                    {
+                        token: "support.type",
+                        foreground: "116329",
+                        fontStyle: "italic",
+                    },
+                    { token: "number", foreground: "0550ae" },
+                    { token: "number.hex", foreground: "0550ae" },
+                    { token: "string", foreground: "0a3069" },
+                    { token: "string.quote", foreground: "0a3069" },
+                    { token: "string.escape", foreground: "0550ae" },
+                    { token: "comment", foreground: "6e7781" },
+                    {
+                        token: "comment.doc",
+                        foreground: "6e7781",
+                        fontStyle: "italic",
+                    },
+                    { token: "annotation", foreground: "8250df" },
+                    { token: "constant", foreground: "953800" },
+                    { token: "variable.parameter", foreground: "953800" },
+                    {
+                        token: "variable.predefined",
+                        foreground: "953800",
+                        fontStyle: "italic",
+                    },
+                    { token: "tag", foreground: "116329" },
+                    { token: "delimiter", foreground: "57606a" },
+                    { token: "operator", foreground: "cf222e" },
+                ],
+                colors: {
+                    "editor.foreground": "#24292f",
+                    "editor.background": "#f6f8fa",
+                    "editorLineNumber.foreground": "#d0d7de",
+                    "editorLineNumber.activeForeground": "#57606a",
                 },
             });
         }
@@ -127,10 +231,7 @@ export function EditorPane() {
                 vimModeRef.current = null;
             }
             if (vimStatusRef.current) {
-                vimModeRef.current = initVimMode(
-                    editor,
-                    vimStatusRef.current,
-                );
+                vimModeRef.current = initVimMode(editor, vimStatusRef.current);
             }
         }
     };
