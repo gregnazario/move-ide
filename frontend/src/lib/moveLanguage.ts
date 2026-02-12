@@ -7,48 +7,76 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
     tokenPostfix: ".move",
 
     keywords: [
-        "address",
-        "as",
-        "abort",
-        "acquires",
-        "assert",
-        "break",
-        "const",
-        "continue",
-        "copy",
-        "drop",
-        "else",
-        "entry",
-        "enum",
-        "for",
-        "friend",
-        "fun",
-        "has",
-        "if",
-        "in",
-        "inline",
-        "invariant",
-        "is",
-        "key",
-        "let",
-        "loop",
-        "match",
+        // Declarations
         "module",
-        "move",
-        "mut",
-        "native",
-        "package",
-        "phantom",
-        "public",
-        "return",
-        "schema",
         "script",
-        "spec",
-        "store",
         "struct",
+        "enum",
+        "fun",
+        "const",
         "use",
+        "spec",
+        "schema",
+        // Visibility & modifiers
+        "public",
+        "entry",
+        "native",
+        "inline",
+        "friend",
+        "package",
+        // Control flow
+        "if",
+        "else",
         "while",
+        "loop",
+        "for",
+        "in",
+        "match",
+        "break",
+        "continue",
+        "return",
+        "abort",
+        // Variable & ownership
+        "let",
+        "mut",
+        "move",
+        "copy",
+        // Abilities clause
+        "has",
+        // Resource annotation
+        "acquires",
+        // Import aliasing
+        "as",
+        // Phantom type parameter
+        "phantom",
+        // Enum variant test (Move 2.0+)
+        "is",
+        // Move 2.x additions
+        "macro",
+        "receiver",
+        // Spec language keywords
+        "pragma",
+        "invariant",
+        "ensures",
+        "requires",
+        "aborts_if",
+        "aborts_with",
+        "include",
+        "assume",
+        "assert",
+        "modifies",
+        "emits",
+        "apply",
+        "axiom",
+        "forall",
+        "exists",
+        "choose",
+        "old",
+        "global",
+        "with",
     ],
+
+    abilities: ["copy", "drop", "key", "store"],
 
     literals: ["true", "false"],
 
@@ -74,19 +102,31 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
         "MIN_I256",
     ],
 
+    // Global storage operators (highlighted as builtins when called)
+    builtinFunctions: [
+        "borrow_global",
+        "borrow_global_mut",
+        "move_from",
+        "move_to",
+        "freeze",
+    ],
+
     typeKeywords: [
+        // Unsigned integers
         "u8",
         "u16",
         "u32",
         "u64",
         "u128",
         "u256",
+        // Signed integers (Move 2.3+)
         "i8",
         "i16",
         "i32",
         "i64",
         "i128",
         "i256",
+        // Other primitives
         "bool",
         "address",
         "signer",
@@ -141,10 +181,11 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
 
     tokenizer: {
         root: [
-            // Attributes/annotations
-            [/#\[[^\]]*\]/, "annotation"],
+            // Attributes/annotations – handle nested parens
+            // e.g. #[test], #[expected_failure(abort_code = 1)]
+            [/#\[/, { token: "annotation", next: "@attribute" }],
 
-            // Loop labels
+            // Loop labels  e.g. 'outer
             [/'[a-zA-Z_][\w$]*/, "tag"],
 
             // Lambda parameters (|x, y| ...)
@@ -153,20 +194,57 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
                 { token: "operator", next: "@lambdaParams" },
             ],
 
-            // Builtin constants
+            // Builtin constants (ALL_CAPS)
             [/\b__COMPILE_FOR_TESTING__\b/, "constant"],
             [/\bMAX_[UI]\d+\b/, "constant"],
             [/\bMIN_I\d+\b/, "constant"],
 
-            // Address literals
-            [/\@0[xX][0-9a-fA-F_]+/, "number.hex"],
-            [/\@[a-zA-Z_][\w_]*/, "constant"],
+            // Address literals  @0x1, @aptos_framework
+            [/@0[xX][0-9a-fA-F_]+/, "number.hex"],
+            [/@[a-zA-Z_][\w_]*/, "constant"],
 
-            // Identifiers and keywords
+            // Macro invocations: assert!(...), abort!(...)
+            [/[a-z_$][\w$]*!/, "support.function"],
+
+            // ---- Qualified paths (state-based) ----
+            // Hex-address start:  0x1::module::Item
+            [
+                /0[xX][0-9a-fA-F_]+(?=\s*::)/,
+                { token: "number.hex", next: "@qualifiedPath" },
+            ],
+            // Named start:  std::vector,  Self::func,  aptos_framework::coin
+            [
+                /[a-zA-Z_]\w*(?=\s*::)/,
+                { token: "type.identifier", next: "@qualifiedPath" },
+            ],
+
+            // Function / method invocations: name(  or  name<T>(
+            // Supports one level of nested generics: name<Outer<Inner>>(
+            [
+                /[a-z_$][\w$]*(?=\s*(?:<(?:[^<>]|<[^>]*>)*>)?\s*\()/,
+                {
+                    cases: {
+                        self: "variable.predefined",
+                        "@builtinFunctions": "support.function",
+                        "@typeKeywords": "type",
+                        "@literals": "constant",
+                        "@keywords": "keyword",
+                        "@default": "entity.name.function.invoke",
+                    },
+                },
+            ],
+
+            // Identifiers and keywords – specific keywords trigger sub-states
             [
                 /[a-z_$][\w$]*/,
                 {
                     cases: {
+                        fun: { token: "keyword", next: "@functionDef" },
+                        struct: { token: "keyword", next: "@typeDef" },
+                        enum: { token: "keyword", next: "@typeDef" },
+                        module: { token: "keyword", next: "@moduleDef" },
+                        has: { token: "keyword", next: "@abilityList" },
+                        self: "variable.predefined",
                         "@typeKeywords": "type",
                         "@literals": "constant",
                         "@keywords": "keyword",
@@ -174,11 +252,14 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
                     },
                 },
             ],
+
+            // Type identifiers (PascalCase) and Self
             [
-                /[A-Z][\w\$]*/,
+                /[A-Z][\w$]*/,
                 {
                     cases: {
                         "@builtinConstants": "constant",
+                        Self: "keyword",
                         "@default": "type.identifier",
                     },
                 },
@@ -240,6 +321,81 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/'/, "string.invalid"],
         ],
 
+        // ---- Qualified path segments after the initial identifier ----
+        // Entered when we see `name::` — processes each :: segment and
+        // classifies the *terminal* segment as a function invocation when
+        // it is followed by optional generics + `(`.
+        qualifiedPath: [
+            [/\s+/, "white"],
+            [/::/, "delimiter"],
+            // Intermediate segment (more :: ahead)
+            [/[a-zA-Z_]\w*(?=\s*::)/, "type.identifier"],
+            // Terminal segment that is a function / method call
+            [
+                /[a-zA-Z_]\w*(?=\s*(?:<(?:[^<>]|<[^>]*>)*>)?\s*\()/,
+                { token: "entity.name.function.invoke", next: "@pop" },
+            ],
+            // Terminal segment — plain type / module reference
+            [/[a-zA-Z_]\w*/, { token: "type.identifier", next: "@pop" }],
+            // Anything else (e.g. `{` in `use a::b::{…}`) — re-process in root
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
+        // ---- Attribute with nested parens ----
+        attribute: [
+            [/[^\]\(\)]+/, "annotation"],
+            [/\(/, { token: "annotation", next: "@attributeArgs" }],
+            [/\]/, { token: "annotation", next: "@pop" }],
+        ],
+
+        attributeArgs: [
+            [/[^\(\)]+/, "annotation"],
+            [/\(/, { token: "annotation", next: "@push" }],
+            [/\)/, { token: "annotation", next: "@pop" }],
+        ],
+
+        // ---- After fun keyword – highlight function name ----
+        functionDef: [
+            [/[ \t]+/, "white"],
+            [/[a-z_]\w*/, { token: "entity.name.function", next: "@pop" }],
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
+        // ---- After struct / enum keyword – highlight type name ----
+        typeDef: [
+            [/[ \t]+/, "white"],
+            [/[A-Za-z_]\w*/, { token: "entity.name.type", next: "@pop" }],
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
+        // ---- After module keyword – highlight address::name ----
+        moduleDef: [
+            [/[ \t]+/, "white"],
+            [/0[xX][0-9a-fA-F_]+/, "number.hex"],
+            [/::/, "delimiter"],
+            [/[a-zA-Z_]\w*(?=\s*::)/, "entity.name.type"],
+            [/[a-zA-Z_]\w*/, { token: "entity.name.type", next: "@pop" }],
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
+        // ---- After has keyword – highlight abilities ----
+        // Handles both comma-separated (struct has copy, drop)
+        // and plus-separated (|u64| u64 has drop + copy) forms.
+        abilityList: [
+            [/[ \t]+/, "white"],
+            [/[,+]/, "delimiter"],
+            [
+                /[a-z_]\w*/,
+                {
+                    cases: {
+                        "@abilities": "support.type",
+                        "@default": { token: "@rematch", next: "@pop" },
+                    },
+                },
+            ],
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
         comment: [
             [/[^\/*]+/, "comment"],
             [/\/\*/, "comment", "@push"],
@@ -283,13 +439,14 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
                     },
                 },
             ],
-            [/[A-Z][\w\$]*/, "type.identifier"],
+            [/[A-Z][\w$]*/, "type.identifier"],
             [/[(),]/, "delimiter"],
         ],
 
         whitespace: [
             [/[ \t\r\n]+/, "white"],
             [/\/\*/, "comment", "@comment"],
+            [/\/\/\/.*$/, "comment.doc"],
             [/\/\/.*$/, "comment"],
         ],
     },
