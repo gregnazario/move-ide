@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useExecution } from "../hooks/useExecution";
+import { BACKEND_URL } from "../lib/config";
 import {
     type DevnetAccountData,
     accountFromStored,
@@ -103,7 +104,7 @@ export function Header() {
         }));
 
         try {
-            let response = await fetch("/api/share", {
+            let response = await fetch(`${BACKEND_URL}/api/share`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -118,7 +119,7 @@ export function Header() {
                     method: "POST",
                     credentials: "include",
                 });
-                response = await fetch("/api/share", {
+                response = await fetch(`${BACKEND_URL}/api/share`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",

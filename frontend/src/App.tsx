@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Toaster, toast } from "sonner";
 import { Header } from "./components/Header";
 import { Workspace } from "./components/Workspace";
+import { BACKEND_URL } from "./lib/config";
 import { useUiStore, useWorkspaceStore } from "./store";
 
 function App() {
@@ -53,7 +54,7 @@ function App() {
 
         const loadShare = async () => {
             try {
-                let response = await fetch(`/api/load/${id}`, {
+                let response = await fetch(`${BACKEND_URL}/api/load/${id}`, {
                     credentials: "include",
                 });
                 if (response.status === 401 || response.status === 403) {
@@ -61,7 +62,7 @@ function App() {
                         method: "POST",
                         credentials: "include",
                     });
-                    response = await fetch(`/api/load/${id}`, {
+                    response = await fetch(`${BACKEND_URL}/api/load/${id}`, {
                         credentials: "include",
                     });
                 }

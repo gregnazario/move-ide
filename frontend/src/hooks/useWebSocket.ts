@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { BACKEND_URL } from "../lib/config";
 import { useWorkspaceStore } from "../store";
 import type { DonePayload, ServerMessage } from "../types/execute";
 
@@ -27,8 +28,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
         setWsStatus("connecting");
 
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws/execute`;
+        let baseUrl: URL;
+        if (BACKEND_URL) {
+            try {
+                baseUrl = new URL(BACKEND_URL);
+            } catch (e) {
+                console.error(
+                    "Invalid BACKEND_URL, falling back to same-origin for WebSocket:",
+                    e,
+                );
+                baseUrl = new URL(window.location.origin);
+            }
+        } else {
+            baseUrl = new URL(window.location.origin);
+        }
+
+        const wsProtocol =
+            baseUrl.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${baseUrl.host}/ws/execute`;
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
