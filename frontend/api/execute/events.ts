@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const sendEvents = async () => {
         const start = cursor + 1;
-        const items = await redis.lrange<string[]>(eventsKey, start, -1);
+        const items = await redis.lrange<string>(eventsKey, start, -1);
         items.forEach((item, index) => {
             const eventCursor = start + index;
             const payload = JSON.stringify({

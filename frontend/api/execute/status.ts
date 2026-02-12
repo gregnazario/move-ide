@@ -29,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (Number.isNaN(cursor) || cursor < -1) cursor = -1;
 
     const start = cursor + 1;
-    const items = await redis.lrange<string[]>(eventsKey, start, -1);
+    const items = await redis.lrange<string>(eventsKey, start, -1);
     const status = await redis.hget<string>(statusKey, "status");
 
     const events = items.map((item) => JSON.parse(item));
