@@ -38,3 +38,6 @@ npm-debug.log*
 # Testing
 coverage/
 .nyc_output/
+test-results/
+frontend/e2e/screenshots/
+frontend/test-results/
