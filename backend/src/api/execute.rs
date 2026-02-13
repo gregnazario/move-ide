@@ -42,7 +42,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, addr: SocketAddr) {
                 },
             };
             let _ = sender
-                .send(Message::Text(serde_json::to_string(&msg).unwrap()))
+                .send(Message::Text(serde_json::to_string(&msg).unwrap().into()))
                 .await;
             return;
         }
@@ -55,7 +55,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, addr: SocketAddr) {
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json)).await.is_err() {
+                if sender.send(Message::Text(json.into())).await.is_err() {
                     break;
                 }
             }

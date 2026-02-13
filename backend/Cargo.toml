@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 # Web framework
-axum = { version = "0.7", features = ["ws", "macros"] }
+axum = { version = "0.8", features = ["ws", "macros"] }
 tokio = { version = "1", features = ["full"] }
-tower = { version = "0.4", features = ["util"] }
-tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -19,14 +19,14 @@ toml = "0.8"
 futures = "0.3"
 
 # HTTP client for GitHub API
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 # Utilities
 uuid = { version = "1", features = ["v4"] }
 tempfile = "3"
 regex = "1"
 lazy_static = "1"
-thiserror = "1"
+thiserror = "2"
 anyhow = "1"
 jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 base64 = "0.22"
@@ -36,7 +36,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Rate limiting
-dashmap = "5"
+dashmap = "6"
 
 # Environment config
 dotenvy = "0.15"
