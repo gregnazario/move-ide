@@ -365,12 +365,12 @@ export function Header() {
                     <div className="flex">
                         <button
                             type="button"
-                            onClick={handleRun}
+                            onClick={() => execute("compile")}
                             disabled={isExecuting || !executionReady}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-l text-white text-sm font-medium transition-colors"
                         >
                             <Play size={14} fill="currentColor" />
-                            {isExecuting ? "Running..." : "Run"}
+                            {isExecuting ? "Compiling..." : "Compile"}
                         </button>
                         <button
                             type="button"
@@ -386,22 +386,22 @@ export function Header() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    handleRun();
-                                    setShowRunMenu(false);
-                                }}
-                                className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
-                            >
-                                Run
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
                                     execute("compile");
                                     setShowRunMenu(false);
                                 }}
                                 className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
                             >
                                 Compile
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleRun();
+                                    setShowRunMenu(false);
+                                }}
+                                className="w-full px-3 py-1.5 text-left text-sm hover:bg-bg-secondary"
+                            >
+                                Run
                             </button>
                             <button
                                 type="button"
