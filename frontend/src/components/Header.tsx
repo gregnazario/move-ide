@@ -30,7 +30,7 @@ export function Header() {
     const { isExecuting, selectedFunction, wsStatus } = useWorkspaceStore();
     const { themeMode, setThemeMode, keybindingMode, setKeybindingMode } =
         useUiStore();
-    const { execute, executeWithResult, mode } = useExecution();
+    const { execute, executeWithResult } = useExecution();
     const {
         connected,
         account,
@@ -81,7 +81,7 @@ export function Header() {
         () => wallets.filter((wallet) => wallet.readyState !== "NotDetected"),
         [wallets],
     );
-    const executionReady = mode === "serverless" || wsStatus === "connected";
+    const executionReady = wsStatus === "connected";
 
     const handleRun = async () => {
         if (!selectedFunction) {
@@ -706,22 +706,18 @@ export function Header() {
                 <div className="flex items-center gap-2 text-xs text-text-secondary">
                     <span
                         className={`w-2 h-2 rounded-full ${
-                            mode === "serverless"
+                            wsStatus === "connected"
                                 ? "bg-accent"
-                                : wsStatus === "connected"
-                                  ? "bg-accent"
-                                  : wsStatus === "connecting"
-                                    ? "bg-warning animate-pulse"
-                                    : "bg-error"
+                                : wsStatus === "connecting"
+                                  ? "bg-warning animate-pulse"
+                                  : "bg-error"
                         }`}
                     />
-                    {mode === "serverless"
-                        ? "Serverless"
-                        : wsStatus === "connected"
-                          ? "Connected"
-                          : wsStatus === "connecting"
-                            ? "Connecting..."
-                            : "Disconnected"}
+                    {wsStatus === "connected"
+                        ? "Connected"
+                        : wsStatus === "connecting"
+                          ? "Connecting..."
+                          : "Disconnected"}
                 </div>
             </div>
         </header>

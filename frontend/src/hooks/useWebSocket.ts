@@ -3,12 +3,7 @@ import { BACKEND_URL } from "../lib/config";
 import { useWorkspaceStore } from "../store";
 import type { DonePayload, ServerMessage } from "../types/execute";
 
-type UseWebSocketOptions = {
-    enabled?: boolean;
-};
-
-export function useWebSocket(options: UseWebSocketOptions = {}) {
-    const enabled = options.enabled ?? true;
+export function useWebSocket() {
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
@@ -23,7 +18,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         useWorkspaceStore();
 
     const connect = useCallback(() => {
-        if (!enabled) return;
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
         setWsStatus("connecting");
@@ -83,7 +77,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                 console.error("Failed to parse WebSocket message:", e);
             }
         };
-    }, [enabled, setWsStatus]);
+    }, [setWsStatus]);
 
     const handleMessage = (msg: ServerMessage) => {
         switch (msg.type) {
@@ -209,16 +203,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
     // Connect on mount
     useEffect(() => {
-        if (!enabled) {
-            setWsStatus("disconnected");
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-            }
-            wsRef.current?.close();
-            wsRef.current = null;
-            return;
-        }
-
         connect();
 
         // Keepalive ping
@@ -235,7 +219,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             }
             wsRef.current?.close();
         };
-    }, [connect, enabled, setWsStatus]);
+    }, [connect]);
 
     return { execute, executeWithResult };
 }
