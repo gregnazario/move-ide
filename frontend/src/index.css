@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+    --color-bg-primary: var(--bg-primary);
+    --color-bg-secondary: var(--bg-secondary);
+    --color-bg-tertiary: var(--bg-tertiary);
+    --color-border: var(--border);
+    --color-text-primary: var(--text-primary);
+    --color-text-secondary: var(--text-secondary);
+    --color-text-link: var(--text-link);
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-warning: var(--warning);
+    --color-error: var(--error);
+    --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
 
 :root {
     --bg-primary: #0d1117;
