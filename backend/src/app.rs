@@ -39,7 +39,7 @@ pub fn build_app(state: AppState) -> Router {
 
     let protected = Router::new()
         .route("/api/share", post(api::share::create_share))
-        .route("/api/load/:id", get(api::share::load_share))
+        .route("/api/load/{id}", get(api::share::load_share))
         .route("/ws/execute", get(api::execute::ws_execute))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
