@@ -55,29 +55,29 @@ export function Workspace() {
         <div className="flex-1 overflow-hidden">
             <Group orientation="horizontal">
                 {/* File Tree */}
-                <Panel defaultSize={15} minSize={10} maxSize={25}>
+                <Panel defaultSize={18} minSize={8}>
                     <FileTree />
                 </Panel>
 
                 <Separator className="w-1 bg-border hover:bg-text-link transition-colors cursor-col-resize" />
 
                 {/* Editor */}
-                <Panel defaultSize={55} minSize={30}>
+                <Panel defaultSize={50} minSize={20}>
                     <EditorPane />
                 </Panel>
 
                 <Separator className="w-1 bg-border hover:bg-text-link transition-colors cursor-col-resize" />
 
                 {/* Right Panel: Output + Config */}
-                <Panel defaultSize={30} minSize={20} maxSize={40}>
+                <Panel defaultSize={32} minSize={15}>
                     <Group orientation="vertical">
-                        <Panel defaultSize={60} minSize={20}>
+                        <Panel defaultSize={60} minSize={15}>
                             <OutputPane />
                         </Panel>
 
                         <Separator className="h-1 bg-border hover:bg-text-link transition-colors cursor-row-resize" />
 
-                        <Panel defaultSize={40} minSize={15}>
+                        <Panel defaultSize={40} minSize={10}>
                             <ConfigPanel />
                         </Panel>
                     </Group>
