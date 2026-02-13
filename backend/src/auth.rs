@@ -29,21 +29,42 @@ pub async fn auth_middleware(
     next: Next,
 ) -> Response {
     let headers = req.headers();
+    let path = req.uri().path().to_string();
+
     let origin = match extract_origin(headers) {
         Some(origin) => origin,
-        None => return AppError::Unauthorized("Missing Origin/Referer".into()).into_response(),
+        None => {
+            tracing::warn!(path = %path, "Auth rejected: missing Origin/Referer header");
+            return AppError::Unauthorized("Missing Origin/Referer".into()).into_response();
+        }
     };
 
     if !is_origin_allowed(&origin, &state.config.frontend_origins) {
+        tracing::warn!(
+            path = %path,
+            origin = %origin,
+            allowed = ?state.config.frontend_origins,
+            "Auth rejected: origin not allowed"
+        );
         return AppError::Unauthorized("Origin not allowed".into()).into_response();
     }
 
     let token = match extract_cookie(headers, "mp_auth") {
         Some(token) => token,
-        None => return AppError::Unauthorized("Missing auth cookie".into()).into_response(),
+        None => {
+            let cookie_header = headers.get("cookie").and_then(|v| v.to_str().ok()).unwrap_or("<none>");
+            tracing::warn!(
+                path = %path,
+                origin = %origin,
+                cookies = %cookie_header,
+                "Auth rejected: missing mp_auth cookie"
+            );
+            return AppError::Unauthorized("Missing auth cookie".into()).into_response();
+        }
     };
 
     if let Err(err) = verify_token(&token, &origin, &state.config.auth_jwt_secret) {
+        tracing::warn!(path = %path, origin = %origin, error = %err, "Auth rejected: token verification failed");
         return AppError::Unauthorized(err).into_response();
     }
 
