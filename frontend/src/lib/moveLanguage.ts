@@ -174,7 +174,7 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
         "::",
     ],
 
-    symbols: /[=><!~?:&|+\-*\/\^%]+/,
+    symbols: /[=><!~?:&|+\-*/^%]+/,
 
     escapes:
         /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
@@ -205,6 +205,12 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
 
             // Macro invocations: assert!(...), abort!(...)
             [/[a-z_$][\w$]*!/, "support.function"],
+
+            // vector constructor: vector[1, 2, 3] or vector<T>[...]
+            [
+                /\bvector\b(?=\s*(?:<(?:[^<>]|<[^>]*>)*>)?\s*\[)/,
+                "support.function",
+            ],
 
             // ---- Qualified paths (state-based) ----
             // Hex-address start:  0x1::module::Item
@@ -244,6 +250,7 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
                         enum: { token: "keyword", next: "@typeDef" },
                         module: { token: "keyword", next: "@moduleDef" },
                         has: { token: "keyword", next: "@abilityList" },
+                        const: { token: "keyword", next: "@constDef" },
                         self: "variable.predefined",
                         "@typeKeywords": "type",
                         "@literals": "constant",
@@ -269,7 +276,7 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             { include: "@whitespace" },
 
             // Delimiters and operators
-            [/[{}()\[\]]/, "@brackets"],
+            [/[{}()[\]]/, "@brackets"],
             [/[<>](?!@symbols)/, "@brackets"],
             [/\.{2}/, "operator"],
             [
@@ -343,13 +350,13 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
 
         // ---- Attribute with nested parens ----
         attribute: [
-            [/[^\]\(\)]+/, "annotation"],
+            [/[^\]()]+/, "annotation"],
             [/\(/, { token: "annotation", next: "@attributeArgs" }],
             [/\]/, { token: "annotation", next: "@pop" }],
         ],
 
         attributeArgs: [
-            [/[^\(\)]+/, "annotation"],
+            [/[^()]+/, "annotation"],
             [/\(/, { token: "annotation", next: "@push" }],
             [/\)/, { token: "annotation", next: "@pop" }],
         ],
@@ -396,11 +403,19 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/./, { token: "@rematch", next: "@pop" }],
         ],
 
+        // ---- After const keyword – highlight constant name ----
+        constDef: [
+            [/[ \t]+/, "white"],
+            [/[A-Z_]\w*/, { token: "constant", next: "@pop" }],
+            [/[a-z]\w*/, { token: "constant", next: "@pop" }],
+            [/./, { token: "@rematch", next: "@pop" }],
+        ],
+
         comment: [
-            [/[^\/*]+/, "comment"],
+            [/[^/*]+/, "comment"],
             [/\/\*/, "comment", "@push"],
             ["\\*/", "comment", "@pop"],
-            [/[\/*]/, "comment"],
+            [/[/*]/, "comment"],
         ],
 
         string: [
@@ -446,8 +461,23 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
         whitespace: [
             [/[ \t\r\n]+/, "white"],
             [/\/\*/, "comment", "@comment"],
-            [/\/\/\/.*$/, "comment.doc"],
+            // Doc comment with content – enter state for @tag highlighting
+            [/\/\/\/(?=.)/, { token: "comment.doc", next: "@docComment" }],
+            // Empty doc comment line (just ///)
+            [/\/\/\//, "comment.doc"],
             [/\/\/.*$/, "comment"],
+        ],
+
+        // ---- Doc comment line (/// ...) – highlight @tags ----
+        // Each rule with `$` anchor pops at end of line to keep
+        // the state scoped to the current line only.
+        docComment: [
+            [/@[a-zA-Z_]\w*$/, { token: "comment.doc.tag", next: "@pop" }],
+            [/@[a-zA-Z_]\w*/, "comment.doc.tag"],
+            [/[^@]+$/, { token: "comment.doc", next: "@pop" }],
+            [/[^@]+/, "comment.doc"],
+            [/@$/, { token: "comment.doc", next: "@pop" }],
+            [/@/, "comment.doc"],
         ],
     },
 };

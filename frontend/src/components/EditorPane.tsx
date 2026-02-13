@@ -91,6 +91,12 @@ export function EditorPane() {
                         foreground: "8b949e",
                         fontStyle: "italic",
                     },
+                    // Doc comment @tags (/// @param, @return, etc.)
+                    {
+                        token: "comment.doc.tag",
+                        foreground: "79c0ff",
+                        fontStyle: "italic",
+                    },
                     // Attributes (#[…])
                     { token: "annotation", foreground: "d2a8ff" },
                     // Constants (MAX_U64, true/false, @named_addr)
@@ -154,6 +160,12 @@ export function EditorPane() {
                     {
                         token: "comment.doc",
                         foreground: "6e7781",
+                        fontStyle: "italic",
+                    },
+                    // Doc comment @tags (/// @param, @return, etc.)
+                    {
+                        token: "comment.doc.tag",
+                        foreground: "0550ae",
                         fontStyle: "italic",
                     },
                     { token: "annotation", foreground: "8250df" },

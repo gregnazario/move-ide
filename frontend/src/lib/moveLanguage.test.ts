@@ -83,16 +83,58 @@ describe("moveLanguageConfig", () => {
         expect(states.attributeArgs).toBeDefined();
     });
 
-    it("has doc comment rule in whitespace state", () => {
+    it("has constDef state for constant name highlighting", () => {
+        const states = moveLanguageConfig.tokenizer as Record<string, unknown>;
+        expect(states.constDef).toBeDefined();
+    });
+
+    it("has docComment state for @tag highlighting in doc comments", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        expect(states.docComment).toBeDefined();
+
+        // docComment should contain a rule that produces comment.doc.tag
+        const dc = states.docComment;
+        const hasDocTagRule = dc.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action === "string") return action === "comment.doc.tag";
+            if (typeof action === "object" && action !== null) {
+                return (
+                    (action as Record<string, unknown>).token ===
+                    "comment.doc.tag"
+                );
+            }
+            return false;
+        });
+        expect(hasDocTagRule).toBe(true);
+    });
+
+    it("has doc comment rules in whitespace state that enter docComment", () => {
         const states = moveLanguageConfig.tokenizer as Record<
             string,
             unknown[]
         >;
         const whitespace = states.whitespace;
-        const hasDocCommentRule = whitespace.some(
+        // Should have a rule that enters @docComment state
+        const hasDocCommentState = whitespace.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            const action = rule[1];
+            if (typeof action === "object" && action !== null) {
+                return (
+                    (action as Record<string, unknown>).next === "@docComment"
+                );
+            }
+            return false;
+        });
+        expect(hasDocCommentState).toBe(true);
+        // Should also have a fallback for empty /// lines
+        const hasEmptyDocRule = whitespace.some(
             (rule: unknown) => Array.isArray(rule) && rule[1] === "comment.doc",
         );
-        expect(hasDocCommentRule).toBe(true);
+        expect(hasEmptyDocRule).toBe(true);
     });
 
     it("has qualifiedPath state for module-qualified paths", () => {
@@ -178,6 +220,24 @@ describe("moveLanguageConfig", () => {
         expect(regex.test("0x1::")).toBe(true);
         // 0X should also match (case-insensitive prefix)
         expect(regex.test("0X1::")).toBe(true);
+    });
+
+    it("has vector constructor rule in root that highlights vector as support.function", () => {
+        const states = moveLanguageConfig.tokenizer as Record<
+            string,
+            unknown[]
+        >;
+        const root = states.root;
+        const hasVectorCtorRule = root.some((rule: unknown) => {
+            if (!Array.isArray(rule) || rule.length < 2) return false;
+            // Look for a rule that matches vector as support.function
+            const action = rule[1];
+            if (action !== "support.function") return false;
+            const regex = rule[0] as RegExp;
+            // Should match vector followed by [
+            return regex.test("vector[") && regex.test("vector <u64>[");
+        });
+        expect(hasVectorCtorRule).toBe(true);
     });
 
     it("has function invocation rule in root with nested-generic-aware lookahead", () => {
