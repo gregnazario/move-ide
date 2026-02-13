@@ -1,12 +1,12 @@
-use axum::http::{header, Method};
+use axum::http::{Method, header};
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use crate::{api, auth, config::Config, service, AppState};
+use crate::{AppState, api, auth, config::Config, service};
 
 pub fn build_state(config: Config) -> AppState {
     AppState {

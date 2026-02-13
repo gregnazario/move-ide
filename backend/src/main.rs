@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use playground_backend::{app, config::Config};
+use playground_backend::{app, config::Config, sandbox};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -19,6 +19,9 @@ async fn main() -> anyhow::Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], config.port));
 
     tracing::info!("Starting Aptos Move Playground backend on {}", addr);
+
+    // Clean up any leftover workspaces from a previous unclean shutdown
+    sandbox::cleanup_orphaned_workspaces().await;
 
     let state = app::build_state(config.clone());
     let app = app::build_app(state);

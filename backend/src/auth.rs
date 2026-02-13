@@ -5,10 +5,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use serde::Deserialize;
 
-use crate::{error::AppError, AppState};
+use crate::{AppState, error::AppError};
 
 const ISSUER: &str = "move-playground";
 const AUDIENCE: &str = "move-playground-backend";
@@ -52,7 +52,10 @@ pub async fn auth_middleware(
     let token = match extract_cookie(headers, "mp_auth") {
         Some(token) => token,
         None => {
-            let cookie_header = headers.get("cookie").and_then(|v| v.to_str().ok()).unwrap_or("<none>");
+            let cookie_header = headers
+                .get("cookie")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("<none>");
             tracing::warn!(
                 path = %path,
                 origin = %origin,

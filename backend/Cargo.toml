@@ -38,6 +38,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Rate limiting
 dashmap = "6"
 
+# Process limits (Unix rlimit)
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 # Environment config
 dotenvy = "0.15"
 

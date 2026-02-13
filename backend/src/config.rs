@@ -24,6 +24,9 @@ pub struct Config {
     // Auth / CORS
     pub auth_jwt_secret: String,
     pub frontend_origins: Vec<String>,
+
+    // Proxy
+    pub trust_proxy_headers: bool,
 }
 
 impl Config {
@@ -75,6 +78,10 @@ impl Config {
             auth_jwt_secret: std::env::var("AUTH_JWT_SECRET")
                 .unwrap_or_else(|_| "dev-secret".into()),
             frontend_origins,
+
+            trust_proxy_headers: std::env::var("PLAYGROUND_TRUST_PROXY_HEADERS")
+                .unwrap_or_else(|_| "false".into())
+                .parse()?,
         })
     }
 }

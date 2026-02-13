@@ -1,11 +1,12 @@
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::time::Instant;
 
 use axum::{
     extract::{
-        ws::{Message, WebSocket},
         ConnectInfo, State, WebSocketUpgrade,
+        ws::{Message, WebSocket},
     },
+    http::HeaderMap,
     response::IntoResponse,
 };
 use futures::{SinkExt, StreamExt};
@@ -13,26 +14,50 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::{
+    AppState,
     sandbox::Workspace,
     service::{Executor, Parser, Validator},
     types::*,
-    AppState,
 };
+
+/// Extract the real client IP, checking proxy headers when trusted.
+fn extract_client_ip(headers: &HeaderMap, addr: &SocketAddr, trust_proxy: bool) -> IpAddr {
+    if trust_proxy {
+        // X-Forwarded-For: first IP in the chain is the original client
+        if let Some(xff) = headers.get("x-forwarded-for")
+            && let Ok(value) = xff.to_str()
+            && let Some(first_ip) = value.split(',').next()
+            && let Ok(ip) = first_ip.trim().parse::<IpAddr>()
+        {
+            return ip;
+        }
+        // X-Real-IP: single IP set by the reverse proxy
+        if let Some(xri) = headers.get("x-real-ip")
+            && let Ok(value) = xri.to_str()
+            && let Ok(ip) = value.trim().parse::<IpAddr>()
+        {
+            return ip;
+        }
+    }
+    addr.ip()
+}
 
 pub async fn ws_execute(
     ws: WebSocketUpgrade,
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
-    tracing::info!(?addr, "New WebSocket connection");
-    ws.on_upgrade(move |socket| handle_socket(socket, state, addr))
+    let client_ip = extract_client_ip(&headers, &addr, state.config.trust_proxy_headers);
+    tracing::info!(%client_ip, ?addr, "New WebSocket connection");
+    ws.on_upgrade(move |socket| handle_socket(socket, state, client_ip))
 }
 
-async fn handle_socket(socket: WebSocket, state: AppState, addr: SocketAddr) {
+async fn handle_socket(socket: WebSocket, state: AppState, client_ip: IpAddr) {
     let (mut sender, mut receiver) = socket.split();
 
     // Try to acquire rate limit slot
-    let _guard = match state.rate_limiter.try_acquire(addr.ip()) {
+    let _guard = match state.rate_limiter.try_acquire(client_ip) {
         Ok(guard) => guard,
         Err(_) => {
             let msg = ServerMessage::Failed {
@@ -93,7 +118,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, addr: SocketAddr) {
     }
 
     send_task.abort();
-    tracing::info!(?addr, "WebSocket connection closed");
+    tracing::info!(%client_ip, "WebSocket connection closed");
 }
 
 async fn handle_execute(
@@ -128,8 +153,8 @@ async fn handle_execute(
         return;
     }
 
-    // Create workspace
-    let workspace = match Workspace::create(&payload.files).await {
+    // Create workspace (cleaned up explicitly at the end; Drop is a safety net)
+    let mut workspace = match Workspace::create(&payload.files).await {
         Ok(w) => w,
         Err(e) => {
             let _ = tx
@@ -198,5 +223,6 @@ async fn handle_execute(
         }
     }
 
-    // Workspace is automatically cleaned up when dropped
+    // Explicit async cleanup (awaited, unlike the fire-and-forget Drop)
+    workspace.cleanup().await;
 }

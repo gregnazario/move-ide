@@ -7,6 +7,7 @@ use crate::types::FileEntry;
 
 pub struct Workspace {
     pub path: PathBuf,
+    cleaned: bool,
 }
 
 impl Workspace {
@@ -28,19 +29,70 @@ impl Workspace {
         }
 
         tracing::debug!(?path, "Created workspace");
-        Ok(Workspace { path })
+        Ok(Workspace {
+            path,
+            cleaned: false,
+        })
+    }
+
+    /// Explicitly clean up the workspace directory (awaited, unlike Drop).
+    pub async fn cleanup(&mut self) {
+        if self.cleaned {
+            return;
+        }
+        self.cleaned = true;
+        if let Err(e) = fs::remove_dir_all(&self.path).await {
+            tracing::warn!(path = ?self.path, ?e, "Failed to cleanup workspace");
+        } else {
+            tracing::debug!(path = ?self.path, "Cleaned up workspace");
+        }
     }
 }
 
 impl Drop for Workspace {
     fn drop(&mut self) {
+        if self.cleaned {
+            return;
+        }
+        // Safety net: workspace was not explicitly cleaned up (e.g. panic or early return).
+        tracing::warn!(path = ?self.path, "Workspace dropped without explicit cleanup, spawning async removal");
         let path = self.path.clone();
         tokio::spawn(async move {
             if let Err(e) = fs::remove_dir_all(&path).await {
-                tracing::warn!(?path, ?e, "Failed to cleanup workspace");
-            } else {
-                tracing::debug!(?path, "Cleaned up workspace");
+                tracing::warn!(?path, ?e, "Failed to cleanup workspace in drop");
             }
         });
+    }
+}
+
+/// Remove any leftover `playground_*` directories in the temp directory.
+/// Call at startup to clean up after unclean shutdowns.
+pub async fn cleanup_orphaned_workspaces() {
+    let tmp = std::env::temp_dir();
+    let mut entries = match fs::read_dir(&tmp).await {
+        Ok(entries) => entries,
+        Err(e) => {
+            tracing::warn!(?e, "Failed to read temp dir for orphan cleanup");
+            return;
+        }
+    };
+
+    let mut count = 0u32;
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let name = entry.file_name();
+        if let Some(name_str) = name.to_str()
+            && name_str.starts_with("playground_")
+        {
+            let path = entry.path();
+            if let Err(e) = fs::remove_dir_all(&path).await {
+                tracing::warn!(?path, ?e, "Failed to remove orphaned workspace");
+            } else {
+                count += 1;
+            }
+        }
+    }
+
+    if count > 0 {
+        tracing::info!(count, "Cleaned up orphaned workspaces from previous run");
     }
 }

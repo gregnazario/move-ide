@@ -1,6 +1,6 @@
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 
-use crate::{error::AppError, types::HealthResponse, AppState};
+use crate::{AppState, error::AppError, types::HealthResponse};
 
 pub async fn health_check(State(state): State<AppState>) -> Result<Json<HealthResponse>, AppError> {
     // Try to get Aptos CLI version

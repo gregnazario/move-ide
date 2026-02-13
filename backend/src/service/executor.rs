@@ -78,6 +78,36 @@ impl<'a> Executor<'a> {
             }
         }
 
+        // Enforce memory and disk limits via rlimit (Unix only)
+        #[cfg(unix)]
+        {
+            let max_mem_bytes = self.config.max_memory_mb * 1024 * 1024;
+            let max_fsize_bytes = self.config.max_disk_mb * 1024 * 1024;
+            unsafe {
+                cmd.pre_exec(move || {
+                    // Limit virtual address space (prevents OOM abuse)
+                    let mem_limit = libc::rlimit {
+                        rlim_cur: max_mem_bytes as libc::rlim_t,
+                        rlim_max: max_mem_bytes as libc::rlim_t,
+                    };
+                    if libc::setrlimit(libc::RLIMIT_AS, &mem_limit) != 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+
+                    // Limit max file size written (prevents disk fill)
+                    let fsize_limit = libc::rlimit {
+                        rlim_cur: max_fsize_bytes as libc::rlim_t,
+                        rlim_max: max_fsize_bytes as libc::rlim_t,
+                    };
+                    if libc::setrlimit(libc::RLIMIT_FSIZE, &fsize_limit) != 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+
+                    Ok(())
+                });
+            }
+        }
+
         // Capture output
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
@@ -87,42 +117,80 @@ impl<'a> Executor<'a> {
         let stdout = child.stdout.take().unwrap();
         let stderr = child.stderr.take().unwrap();
 
-        // Stream stdout
+        let max_output_bytes = self.config.max_stdout_kb * 1024;
+
+        // Stream stdout (capped at max_stdout_kb)
         let tx_stdout = tx.clone();
+        let stdout_cap = max_output_bytes;
         let stdout_handle = tokio::spawn(async move {
             let reader = BufReader::new(stdout);
             let mut lines = reader.lines();
             let mut output = String::new();
+            let mut truncated = false;
             while let Ok(Some(line)) = lines.next_line().await {
-                output.push_str(&line);
-                output.push('\n');
-                let _ = tx_stdout
-                    .send(ServerMessage::Stdout {
-                        payload: OutputPayload {
-                            data: format!("{}\n", line),
-                        },
-                    })
-                    .await;
+                if !truncated {
+                    output.push_str(&line);
+                    output.push('\n');
+                    let _ = tx_stdout
+                        .send(ServerMessage::Stdout {
+                            payload: OutputPayload {
+                                data: format!("{}\n", line),
+                            },
+                        })
+                        .await;
+                    if output.len() >= stdout_cap {
+                        truncated = true;
+                        let _ = tx_stdout
+                            .send(ServerMessage::Stderr {
+                                payload: OutputPayload {
+                                    data: format!(
+                                        "[stdout truncated at {}KB]\n",
+                                        stdout_cap / 1024
+                                    ),
+                                },
+                            })
+                            .await;
+                    }
+                }
+                // Continue draining to prevent pipe blockage
             }
             output
         });
 
-        // Stream stderr
+        // Stream stderr (capped at max_stdout_kb)
         let tx_stderr = tx.clone();
+        let stderr_cap = max_output_bytes;
         let stderr_handle = tokio::spawn(async move {
             let reader = BufReader::new(stderr);
             let mut lines = reader.lines();
             let mut output = String::new();
+            let mut truncated = false;
             while let Ok(Some(line)) = lines.next_line().await {
-                output.push_str(&line);
-                output.push('\n');
-                let _ = tx_stderr
-                    .send(ServerMessage::Stderr {
-                        payload: OutputPayload {
-                            data: format!("{}\n", line),
-                        },
-                    })
-                    .await;
+                if !truncated {
+                    output.push_str(&line);
+                    output.push('\n');
+                    let _ = tx_stderr
+                        .send(ServerMessage::Stderr {
+                            payload: OutputPayload {
+                                data: format!("{}\n", line),
+                            },
+                        })
+                        .await;
+                    if output.len() >= stderr_cap {
+                        truncated = true;
+                        let _ = tx_stderr
+                            .send(ServerMessage::Stderr {
+                                payload: OutputPayload {
+                                    data: format!(
+                                        "[stderr truncated at {}KB]\n",
+                                        stderr_cap / 1024
+                                    ),
+                                },
+                            })
+                            .await;
+                    }
+                }
+                // Continue draining to prevent pipe blockage
             }
             output
         });

@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
 use axum::{
-    extract::{Path, State},
     Json,
+    extract::{Path, State},
 };
 use serde::Deserialize;
 
 use crate::{
+    AppState,
     error::AppError,
     service::GistService,
     types::{FileEntry, LoadResponse, ShareResponse},
-    AppState,
 };
 
 #[derive(Debug, Deserialize)]
