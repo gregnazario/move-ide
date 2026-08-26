@@ -7,10 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - Prevented `aptos move run` from passing unsupported flags and added validation for missing entry function.
 - Terminated long-running executions on timeout to avoid stray processes and workspace deletion errors.
+- macOS: compile/run/test no longer fail with `Invalid argument (os error 22)` — the address-space rlimit is now applied only on Linux where `RLIMIT_AS` is supported (the file-size limit still applies on all platforms).
+- Move editor tokenizer no longer logs a registration warning for address-literal rules (`@0x…`) caused by an unescaped `@` in the Monarch regex.
+### Changed
+- Security patch pass across dependencies: axios, dompurify, form-data, follow-redirects, postcss, nanoid, rollup, vite, @babel/core (frontend) and openssl, rustls-webpki, rand plus transitive bumps (backend); `cargo audit` clean.
+- Dependabot now manages cargo, npm, and GitHub Actions ecosystems with weekly grouped minor/patch updates.
+- Dropped the direct `@aptos-labs/aptos-cli` dependency (unused in app code since the serverless-mode removal; the Aptos SDK still installs it transitively).
+- Pinned `monaco-editor` to a version compatible with `monaco-vim`'s ESM entry points.
 ### Added
-- ZIP export for workspace files.
-- AIP-62 wallet connect UI with devnet test account creation and export.
-- Compile-for-publish pipeline to support on-chain publish/run flows.
+- SVG favicon and Safari pinned-tab icon alongside the existing PNG icon set; expanded web-manifest metadata (`id`, `scope`, description, categories).
+- `PLAYGROUND_BACKEND_ORIGIN` environment override for the Vite dev proxy when the backend runs on a non-default port.
+- README rewritten around the current WebSocket-only architecture with screenshots; added MIT `LICENSE` file.
 
 ## [0.1.0] - 2026-02-02
 ### Added

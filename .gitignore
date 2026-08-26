@@ -42,3 +42,4 @@ coverage/
 test-results/
 frontend/e2e/screenshots/
 frontend/test-results/
+.playwright-mcp/

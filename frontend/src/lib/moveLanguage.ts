@@ -200,8 +200,9 @@ export const moveLanguageConfig: languages.IMonarchLanguage = {
             [/\bMIN_I\d+\b/, "constant"],
 
             // Address literals  @0x1, @aptos_framework
-            [/@0[xX][0-9a-fA-F_]+/, "number.hex"],
-            [/@[a-zA-Z_][\w_]*/, "constant"],
+            // (`@` must be escaped — bare `@name` refers to a Monarch attribute)
+            [/\x40[0][xX][0-9a-fA-F_]+/, "number.hex"],
+            [/\x40[a-zA-Z_][\w_]*/, "constant"],
 
             // Macro invocations: assert!(...), abort!(...)
             [/[a-z_$][\w$]*!/, "support.function"],

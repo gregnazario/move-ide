@@ -81,17 +81,23 @@ impl<'a> Executor<'a> {
         // Enforce memory and disk limits via rlimit (Unix only)
         #[cfg(unix)]
         {
+            #[cfg(target_os = "linux")]
             let max_mem_bytes = self.config.max_memory_mb * 1024 * 1024;
             let max_fsize_bytes = self.config.max_disk_mb * 1024 * 1024;
             unsafe {
                 cmd.pre_exec(move || {
-                    // Limit virtual address space (prevents OOM abuse)
-                    let mem_limit = libc::rlimit {
-                        rlim_cur: max_mem_bytes as libc::rlim_t,
-                        rlim_max: max_mem_bytes as libc::rlim_t,
-                    };
-                    if libc::setrlimit(libc::RLIMIT_AS, &mem_limit) != 0 {
-                        return Err(std::io::Error::last_os_error());
+                    // Limit virtual address space (prevents OOM abuse).
+                    // RLIMIT_AS is unsupported on macOS (setrlimit fails
+                    // with EINVAL), so only enforce it where supported.
+                    #[cfg(target_os = "linux")]
+                    {
+                        let mem_limit = libc::rlimit {
+                            rlim_cur: max_mem_bytes as libc::rlim_t,
+                            rlim_max: max_mem_bytes as libc::rlim_t,
+                        };
+                        if libc::setrlimit(libc::RLIMIT_AS, &mem_limit) != 0 {
+                            return Err(std::io::Error::last_os_error());
+                        }
                     }
 
                     // Limit max file size written (prevents disk fill)

@@ -80,9 +80,10 @@ async fn handle_socket(socket: WebSocket, state: AppState, client_ip: IpAddr) {
     let send_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
             if let Ok(json) = serde_json::to_string(&msg)
-                && sender.send(Message::Text(json.into())).await.is_err() {
-                    break;
-                }
+                && sender.send(Message::Text(json.into())).await.is_err()
+            {
+                break;
+            }
         }
     });
 

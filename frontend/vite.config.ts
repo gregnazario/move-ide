@@ -2,6 +2,10 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+// Override when the backend runs on a non-default port (PLAYGROUND_PORT).
+const backendOrigin =
+    process.env.PLAYGROUND_BACKEND_ORIGIN ?? "http://localhost:8080";
+
 export default defineConfig({
     plugins: [tailwindcss(), react()],
     build: {
@@ -33,11 +37,11 @@ export default defineConfig({
         port: 3000,
         proxy: {
             "/api": {
-                target: "http://localhost:8080",
+                target: backendOrigin,
                 changeOrigin: true,
             },
             "/ws": {
-                target: "ws://localhost:8080",
+                target: backendOrigin.replace(/^http/, "ws"),
                 ws: true,
             },
         },

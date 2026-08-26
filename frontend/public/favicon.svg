@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Move Playground">
+    <title>Move Playground</title>
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="#0d1117" stroke="#21262d" stroke-width="2" />
+    <path d="M24 16 L10 32 L24 48" fill="none" stroke="#58a6ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M38 16 L52 32 L38 48" fill="none" stroke="#2ea043" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -1,10 +1,15 @@
 {
     "name": "Move Playground",
     "short_name": "Move",
+    "id": "/",
+    "scope": "/",
+    "lang": "en",
+    "description": "Interactive Aptos Move playground — write, compile, run, and test Move code in your browser.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0d1117",
     "theme_color": "#0d1117",
+    "categories": ["developer", "education"],
     "icons": [
         {
             "src": "/icons/icon-192.png",

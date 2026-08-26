@@ -5,13 +5,13 @@
     "": {
       "name": "move-playground-frontend",
       "dependencies": {
-        "@aptos-labs/aptos-cli": "^1.1.1",
         "@aptos-labs/ts-sdk": "^6.3.1",
         "@aptos-labs/wallet-adapter-react": "^8.3.3",
         "@monaco-editor/react": "^4.7.0",
         "immer": "^11.1.18",
         "jszip": "^3.10.1",
         "lucide-react": "^0.564.0",
+        "monaco-editor": "0.55.1",
         "monaco-vim": "^0.4.4",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
@@ -632,7 +632,7 @@
 
     "min-indent": ["min-indent@1.0.1", "", {}, "sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg=="],
 
-    "monaco-editor": ["monaco-editor@0.56.0", "", { "dependencies": { "dompurify": "3.4.8", "marked": "14.0.0" } }, "sha512-sXboRm3BeBeLm938eaiyLMe0OxzfXIlZvbv4ir/jVgQy1zDhWjgmny0WoN45fuDKhCCQsYMbBJrv/A6jd8aCUg=="],
+    "monaco-editor": ["monaco-editor@0.55.1", "", { "dependencies": { "dompurify": "3.2.7", "marked": "14.0.0" } }, "sha512-jz4x+TJNFHwHtwuV9vA9rMujcZRb0CEilTEwG2rRSpe/A7Jdkuj8xPKttCgOh+v/lkHy7HsZ64oj+q3xoAFl9A=="],
 
     "monaco-vim": ["monaco-vim@0.4.4", "", { "peerDependencies": { "monaco-editor": "*" } }, "sha512-LNChAb//WEm/W+eyeHG/0+pdVEHotk2hLTN+M3sQZx5E8cAlSWSgqcxpcRuQnxDybSln7pfHF9i63HmbIQvrWw=="],
 

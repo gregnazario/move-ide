@@ -80,13 +80,14 @@ fn extract_origin(headers: &HeaderMap) -> Option<String> {
     }
 
     if let Some(referer) = headers.get("referer")
-        && let Ok(value) = referer.to_str() {
-            let mut parts = value.split('/');
-            let scheme = parts.next()?;
-            let _ = parts.next()?;
-            let host = parts.next()?;
-            return Some(format!("{scheme}//{host}"));
-        }
+        && let Ok(value) = referer.to_str()
+    {
+        let mut parts = value.split('/');
+        let scheme = parts.next()?;
+        let _ = parts.next()?;
+        let host = parts.next()?;
+        return Some(format!("{scheme}//{host}"));
+    }
 
     None
 }
