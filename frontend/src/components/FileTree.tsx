@@ -7,7 +7,7 @@ import {
     Trash2,
 } from "lucide-react";
 import type { DragEvent } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { validateFilePath, validateFolderPath } from "../lib/pathRules";
 import { useWorkspaceStore } from "../store";
@@ -195,20 +195,6 @@ export function FileTree() {
     }, [showMenu]);
 
     useEffect(() => {
-        if (!confirmState) return;
-        const handleKey = (event: KeyboardEvent) => {
-            if (event.key === "Escape") {
-                setConfirmState(null);
-            }
-            if (event.key === "Enter") {
-                confirmDelete();
-            }
-        };
-        document.addEventListener("keydown", handleKey);
-        return () => document.removeEventListener("keydown", handleKey);
-    }, [confirmState]);
-
-    useEffect(() => {
         if (!editState) return;
         if (editInputRef.current) {
             editInputRef.current.focus();
@@ -367,7 +353,7 @@ export function FileTree() {
         setConfirmState({ type: "folder", path: dir });
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = useCallback(() => {
         if (!confirmState) return;
         if (confirmState.type === "file") {
             deleteFile(confirmState.path);
@@ -384,7 +370,21 @@ export function FileTree() {
             );
         }
         setConfirmState(null);
-    };
+    }, [confirmState, filePaths, deleteFile, deleteFolder]);
+
+    useEffect(() => {
+        if (!confirmState) return;
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                setConfirmState(null);
+            }
+            if (event.key === "Enter") {
+                confirmDelete();
+            }
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => document.removeEventListener("keydown", handleKey);
+    }, [confirmState, confirmDelete]);
 
     const handleDragStart = (
         event: DragEvent,
@@ -551,6 +551,7 @@ export function FileTree() {
 
         return (
             <div key={node.path}>
+                {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop affordance; every action also has a click/menu equivalent */}
                 <div
                     className={`group flex items-center gap-2 py-1 pr-2 ${
                         dragOverPath === node.path
@@ -569,6 +570,7 @@ export function FileTree() {
                     onDragLeave={() => setDragOverPath(null)}
                     onDrop={(event) => handleDrop(event, node.path)}
                 >
+                    {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop affordance; every action also has a click/menu equivalent */}
                     <div
                         className="flex items-center gap-2 flex-1 min-w-0"
                         draggable
@@ -638,6 +640,7 @@ export function FileTree() {
         const parentDir = getParentDir(node.path);
 
         return (
+            // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop affordance; every action also has a click/menu equivalent
             <div
                 key={node.path}
                 className={`group flex items-center gap-2 py-1 pr-2 ${
@@ -648,7 +651,7 @@ export function FileTree() {
                 style={{ paddingLeft }}
                 onDragOver={(event) => {
                     const payload = parseDragData(event);
-                    if (!payload || payload.type !== "file") {
+                    if (payload?.type !== "file") {
                         return;
                     }
                     if (getParentDir(payload.path) !== parentDir) {
@@ -659,7 +662,7 @@ export function FileTree() {
                 }}
                 onDrop={(event) => {
                     const payload = parseDragData(event);
-                    if (!payload || payload.type !== "file") {
+                    if (payload?.type !== "file") {
                         return;
                     }
                     if (getParentDir(payload.path) !== parentDir) {
@@ -797,6 +800,7 @@ export function FileTree() {
                 </div>
             </div>
 
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop affordance; every action also has a click/menu equivalent */}
             <div
                 className={`flex-1 overflow-y-auto py-2 ${
                     dragOverPath === ROOT_PATH ? "bg-bg-tertiary" : ""
@@ -818,10 +822,12 @@ export function FileTree() {
             </div>
 
             {confirmState && (
+                // biome-ignore lint/a11y/noStaticElementInteractions: click-to-dismiss backdrop; the dialog buttons are the accessible control
                 <div
                     className="absolute inset-0 bg-black/40 flex items-center justify-center z-20"
                     onMouseDown={() => setConfirmState(null)}
                 >
+                    {/* biome-ignore lint/a11y/noStaticElementInteractions: stops clicks inside the dialog from dismissing it */}
                     <div
                         className="w-80 bg-bg-secondary border border-border rounded shadow-xl p-4"
                         onMouseDown={(event) => event.stopPropagation()}

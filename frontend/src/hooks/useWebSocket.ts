@@ -17,6 +17,76 @@ export function useWebSocket() {
     const { setWsStatus, setIsExecuting, addOutput, setErrors, clearOutput } =
         useWorkspaceStore();
 
+    const handleMessage = useCallback(
+        (msg: ServerMessage) => {
+            switch (msg.type) {
+                case "pong":
+                    // Heartbeat response
+                    break;
+
+                case "started":
+                    setIsExecuting(true);
+                    addOutput({
+                        type: "system",
+                        content: `Starting ${msg.payload.command}...`,
+                        timestamp: Date.now(),
+                    });
+                    break;
+
+                case "stdout":
+                    addOutput({
+                        type: "stdout",
+                        content: msg.payload.data,
+                        timestamp: Date.now(),
+                    });
+                    break;
+
+                case "stderr":
+                    addOutput({
+                        type: "stderr",
+                        content: msg.payload.data,
+                        timestamp: Date.now(),
+                    });
+                    break;
+
+                case "errors":
+                    setErrors(msg.payload.errors);
+                    break;
+
+                case "done":
+                    setIsExecuting(false);
+                    addOutput({
+                        type: msg.payload.success ? "success" : "error",
+                        content: msg.payload.success
+                            ? `Completed in ${msg.payload.duration_ms}ms`
+                            : `Failed with exit code ${msg.payload.exit_code}`,
+                        timestamp: Date.now(),
+                    });
+                    if (pendingRef.current) {
+                        pendingRef.current.resolve(msg.payload);
+                        pendingRef.current = null;
+                    }
+                    break;
+
+                case "failed":
+                    setIsExecuting(false);
+                    addOutput({
+                        type: "error",
+                        content: `Error: ${msg.payload.message}`,
+                        timestamp: Date.now(),
+                    });
+                    if (pendingRef.current) {
+                        pendingRef.current.reject(
+                            new Error(msg.payload.message),
+                        );
+                        pendingRef.current = null;
+                    }
+                    break;
+            }
+        },
+        [setIsExecuting, addOutput, setErrors],
+    );
+
     const connect = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
@@ -37,8 +107,7 @@ export function useWebSocket() {
             baseUrl = new URL(window.location.origin);
         }
 
-        const wsProtocol =
-            baseUrl.protocol === "https:" ? "wss:" : "ws:";
+        const wsProtocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${wsProtocol}//${baseUrl.host}/ws/execute`;
 
         const ws = new WebSocket(wsUrl);
@@ -77,72 +146,7 @@ export function useWebSocket() {
                 console.error("Failed to parse WebSocket message:", e);
             }
         };
-    }, [setWsStatus]);
-
-    const handleMessage = (msg: ServerMessage) => {
-        switch (msg.type) {
-            case "pong":
-                // Heartbeat response
-                break;
-
-            case "started":
-                setIsExecuting(true);
-                addOutput({
-                    type: "system",
-                    content: `Starting ${msg.payload.command}...`,
-                    timestamp: Date.now(),
-                });
-                break;
-
-            case "stdout":
-                addOutput({
-                    type: "stdout",
-                    content: msg.payload.data,
-                    timestamp: Date.now(),
-                });
-                break;
-
-            case "stderr":
-                addOutput({
-                    type: "stderr",
-                    content: msg.payload.data,
-                    timestamp: Date.now(),
-                });
-                break;
-
-            case "errors":
-                setErrors(msg.payload.errors);
-                break;
-
-            case "done":
-                setIsExecuting(false);
-                addOutput({
-                    type: msg.payload.success ? "success" : "error",
-                    content: msg.payload.success
-                        ? `Completed in ${msg.payload.duration_ms}ms`
-                        : `Failed with exit code ${msg.payload.exit_code}`,
-                    timestamp: Date.now(),
-                });
-                if (pendingRef.current) {
-                    pendingRef.current.resolve(msg.payload);
-                    pendingRef.current = null;
-                }
-                break;
-
-            case "failed":
-                setIsExecuting(false);
-                addOutput({
-                    type: "error",
-                    content: `Error: ${msg.payload.message}`,
-                    timestamp: Date.now(),
-                });
-                if (pendingRef.current) {
-                    pendingRef.current.reject(new Error(msg.payload.message));
-                    pendingRef.current = null;
-                }
-                break;
-        }
-    };
+    }, [setWsStatus, handleMessage]);
 
     const execute = useCallback(
         async (

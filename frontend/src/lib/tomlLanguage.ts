@@ -7,7 +7,7 @@ export const tomlLanguageConfig: languages.IMonarchLanguage = {
         root: [
             { include: "@whitespace" },
             [/\[[^\]]+\]/, "type.identifier"],
-            [/^[A-Za-z0-9_\-\.]+(?=\s*=)/, "identifier"],
+            [/^[A-Za-z0-9_\-.]+(?=\s*=)/, "identifier"],
             [/=|,/, "delimiter"],
             [/[+-]?\d+(\.\d+)?([eE][+-]?\d+)?/, "number"],
             [/\b(true|false)\b/, "keyword"],

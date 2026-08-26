@@ -346,6 +346,7 @@ export function EditorPane() {
                     const file = files.get(tab);
                     const isActive = activeFile === tab;
                     return (
+                        // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop affordance; every action also has a click equivalent
                         <div
                             key={tab}
                             className={`flex items-center h-full border-r border-border group ${

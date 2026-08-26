@@ -16,9 +16,9 @@ import { toast } from "sonner";
 import { useExecution } from "../hooks/useExecution";
 import { BACKEND_URL } from "../lib/config";
 import {
-    type DevnetAccountData,
     accountFromStored,
     createDevnetAccount,
+    type DevnetAccountData,
     exportDevnetAccount,
     fundDevnetAccount,
     getDevnetClient,

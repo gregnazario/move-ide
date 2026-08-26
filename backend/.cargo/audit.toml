@@ -1,0 +1,11 @@
+# cargo-audit configuration for the backend workspace.
+#
+# The rsa crate is an unconditional transitive dependency of `jsonwebtoken`
+# (RUSTSEC-2023-0071, Marvin timing side-channel). No patched release exists
+# upstream yet. This service only verifies tokens with HMAC-SHA256 (see
+# src/auth.rs), so no RSA keys are ever parsed and the vulnerable code path is
+# unreachable. Remove this entry once jsonwebtoken ships a fixed version.
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071", # rsa via jsonwebtoken; unused (HMAC-only auth)
+]

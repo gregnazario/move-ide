@@ -16,33 +16,36 @@
     "dependencies": {
         "@monaco-editor/react": "^4.7.0",
         "@aptos-labs/aptos-cli": "^1.1.1",
-        "@aptos-labs/ts-sdk": "^6.0.0",
-        "@aptos-labs/wallet-adapter-react": "^8.2.1",
-        "immer": "^11.1.4",
+        "@aptos-labs/ts-sdk": "^6.3.1",
+        "@aptos-labs/wallet-adapter-react": "^8.3.3",
+        "immer": "^11.1.18",
         "jszip": "^3.10.1",
         "lucide-react": "^0.564.0",
         "monaco-vim": "^0.4.4",
-        "react": "^19.2.4",
-        "react-dom": "^19.2.4",
-        "react-resizable-panels": "^4.6.2",
-        "sonner": "^2.0.7",
-        "zustand": "^5.0.11"
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+        "react-resizable-panels": "^4.12.3",
+        "sonner": "^2.0.8",
+        "zustand": "^5.0.15"
     },
     "devDependencies": {
-        "@biomejs/biome": "^2.3.15",
-        "@playwright/test": "^1.58.2",
-        "@tailwindcss/postcss": "^4.1.18",
-        "@tailwindcss/vite": "^4.1.18",
-        "@testing-library/jest-dom": "^6.9.1",
+        "@biomejs/biome": "^2.5.10",
+        "@playwright/test": "^1.62.1",
+        "@tailwindcss/postcss": "^4.3.3",
+        "@tailwindcss/vite": "^4.3.3",
+        "@testing-library/jest-dom": "^6.10.0",
         "@testing-library/react": "^16.3.2",
-        "@testing-library/user-event": "^14.6.1",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
-        "@vitejs/plugin-react": "^5.1.4",
-        "jsdom": "^28.0.0",
-        "tailwindcss": "^4.1.18",
+        "@testing-library/user-event": "^14.6.6",
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "^19.2.5",
+        "@vitejs/plugin-react": "^5.2.0",
+        "jsdom": "^28.1.0",
+        "tailwindcss": "^4.3.3",
         "typescript": "~5.9.3",
-        "vite": "^7.3.1",
-        "vitest": "^4.0.18"
+        "vite": "^7.3.6",
+        "vitest": "^4.1.11"
+    },
+    "overrides": {
+        "dompurify": "^3.4.14"
     }
 }

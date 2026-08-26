@@ -84,5 +84,6 @@ body {
 
 /* Monaco editor overrides */
 .monaco-editor .margin {
+    /* biome-ignore lint/complexity/noImportantStyles: required to override Monaco's own injected styles */
     background-color: var(--bg-secondary) !important;
 }
