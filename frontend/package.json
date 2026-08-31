@@ -14,7 +14,7 @@
         "test:e2e": "playwright test"
     },
     "dependencies": {
-        "@aptos-labs/ts-sdk": "^6.3.1",
+        "@aptos-labs/ts-sdk": "7.3.0",
         "@aptos-labs/wallet-adapter-react": "^8.3.3",
         "@monaco-editor/react": "^4.7.0",
         "immer": "^11.1.18",
