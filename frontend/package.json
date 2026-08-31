@@ -19,7 +19,7 @@
         "@aptos-labs/wallet-adapter-react": "^8.3.3",
         "immer": "^11.1.18",
         "jszip": "^3.10.1",
-        "lucide-react": "^0.564.0",
+        "lucide-react": "^1.34.0",
         "monaco-editor": "0.55.1",
         "monaco-vim": "^0.4.4",
         "react": "^19.2.8",
