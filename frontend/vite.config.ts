@@ -1,13 +1,33 @@
+import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// Override when the backend runs on a non-default port (PLAYGROUND_PORT).
+// Override when the backend runs on a non-default port (PLAYGROUND_BACKEND_ORIGIN).
 const backendOrigin =
     process.env.PLAYGROUND_BACKEND_ORIGIN ?? "http://localhost:8080";
 
+// monaco-editor 0.56 rewrote its exports map ("./*" -> "./esm/vs/*.js"), which
+// mangles monaco-vim's UMD require of "monaco-editor/esm/vs/editor/editor.api"
+// into a nonexistent "./esm/vs/esm/vs/..." path. Alias it back to the real file.
+const monacoEditorApi = path.resolve(
+    import.meta.dirname,
+    "node_modules/monaco-editor/esm/vs/editor/editor.api.js",
+);
+const monacoEditorApiAlias = {
+    "monaco-editor/esm/vs/editor/editor.api": monacoEditorApi,
+};
+
 export default defineConfig({
     plugins: [tailwindcss(), react()],
+    resolve: {
+        alias: monacoEditorApiAlias,
+    },
+    optimizeDeps: {
+        esbuildOptions: {
+            alias: monacoEditorApiAlias,
+        },
+    },
     build: {
         rollupOptions: {
             output: {
